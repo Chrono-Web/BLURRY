@@ -1,0 +1,14 @@
+# Real media of real people: local only, never committed (PIANO_BLURRY §6, §9)
+tests/fixtures/private/*
+!tests/fixtures/private/.gitkeep
+
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+*.blurry-partial
+.DS_Store
