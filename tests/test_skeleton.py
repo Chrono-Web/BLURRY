@@ -1,12 +1,16 @@
 import hashlib
 
+import pytest
+
 from blurry_opsec import __version__
 from blurry_opsec.__main__ import main
 from blurry_opsec.model import MODEL_PATH, MODEL_SHA256
 
 
 def test_version(capsys):
-    assert main(["--version"]) == 0
+    with pytest.raises(SystemExit) as exc:
+        main(["--version"])
+    assert exc.value.code == 0
     assert capsys.readouterr().out.strip() == f"blurry {__version__}"
 
 

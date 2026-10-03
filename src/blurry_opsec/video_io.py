@@ -31,8 +31,16 @@ MAX_DURATION_S = 3 * 3600
 MAX_FRAME_PIXELS = 8192 * 4352
 
 # Container/track tags that describe the file format itself, not the recording.
-_TECHNICAL_TAGS = {"major_brand", "minor_version", "compatible_brands", "handler_name",
-                   "vendor_id", "language", "duration", "encoder"}
+_TECHNICAL_TAGS = {
+    "major_brand",
+    "minor_version",
+    "compatible_brands",
+    "handler_name",
+    "vendor_id",
+    "language",
+    "duration",
+    "encoder",
+}
 
 ProgressFn = Callable[[int, int], None]
 
@@ -71,7 +79,9 @@ def open_input(path: Path) -> Iterator:
                 },
             )
         except av.FFmpegError as exc:
-            raise InputError("not a readable video, or a container type that is not accepted") from exc
+            raise InputError(
+                "not a readable video, or a container type that is not accepted"
+            ) from exc
         try:
             if not set(container.format.name.split(",")) & _ALLOWED_DEMUXERS:
                 raise InputError("container type not accepted")
@@ -168,7 +178,9 @@ def probe(path: Path) -> VideoInfo:
         return VideoInfo(w, h, fps, int(frames or 0), bool(container.streams.audio), found)
 
 
-def iter_frames(path: Path, progress: ProgressFn | None = None, total: int = 0) -> Iterator[np.ndarray]:
+def iter_frames(
+    path: Path, progress: ProgressFn | None = None, total: int = 0
+) -> Iterator[np.ndarray]:
     """Decode every frame of the main video track, in display orientation (BGR)."""
     with open_input(path) as container:
         video, _ = _main_streams(container, keep_audio=False)

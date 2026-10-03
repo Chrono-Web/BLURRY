@@ -27,9 +27,7 @@ def load_verified(path: Path = MODEL_PATH) -> bytes:
     try:
         data = path.read_bytes()
     except OSError as exc:
-        raise ModelIntegrityError(
-            "the face detection model is missing; reinstall Blurry"
-        ) from exc
+        raise ModelIntegrityError("the face detection model is missing; reinstall Blurry") from exc
     digest = hashlib.sha256(data).hexdigest()
     if digest != MODEL_SHA256:
         raise ModelIntegrityError(

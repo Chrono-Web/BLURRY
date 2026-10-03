@@ -32,21 +32,45 @@ def build_parser() -> argparse.ArgumentParser:
         description="Cover faces and strip metadata from photos and videos, offline.",
     )
     p.add_argument("inputs", nargs="+", metavar="INPUT", type=Path)
-    p.add_argument("-o", "--output", type=Path, metavar="FOLDER",
-                   help="output folder (default: next to each original)")
-    p.add_argument("--level", choices=list(levels.LEVELS), default=levels.DEFAULT_LEVEL,
-                   help=f"detection sensitivity (default: {levels.DEFAULT_LEVEL})")
-    p.add_argument("--mode", choices=levels.MODES, default=levels.DEFAULT_MODE,
-                   help="solid black box or pixelation (default: solid)")
-    p.add_argument("--padding", type=_padding, default=levels.DEFAULT_PADDING,
-                   help="margin around each face, as a fraction of its long side (default: 0.25)")
-    p.add_argument("--keep-audio", action="store_true",
-                   help="keep the audio track (voices can identify people)")
-    p.add_argument("--no-faces", action="store_true",
-                   help="only strip metadata, do not cover anything")
+    p.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        metavar="FOLDER",
+        help="output folder (default: next to each original)",
+    )
+    p.add_argument(
+        "--level",
+        choices=list(levels.LEVELS),
+        default=levels.DEFAULT_LEVEL,
+        help=f"detection sensitivity (default: {levels.DEFAULT_LEVEL})",
+    )
+    p.add_argument(
+        "--mode",
+        choices=levels.MODES,
+        default=levels.DEFAULT_MODE,
+        help="solid black box or pixelation (default: solid)",
+    )
+    p.add_argument(
+        "--padding",
+        type=_padding,
+        default=levels.DEFAULT_PADDING,
+        help="margin around each face, as a fraction of its long side (default: 0.25)",
+    )
+    p.add_argument(
+        "--keep-audio",
+        action="store_true",
+        help="keep the audio track (voices can identify people)",
+    )
+    p.add_argument(
+        "--no-faces", action="store_true", help="only strip metadata, do not cover anything"
+    )
     p.add_argument("--watermark", metavar="TEXT", help="add a text watermark (off by default)")
-    p.add_argument("--strict", action="store_true",
-                   help="exit with code 2 (and write nothing for that file) when no face is found")
+    p.add_argument(
+        "--strict",
+        action="store_true",
+        help="exit with code 2 (and write nothing for that file) when no face is found",
+    )
     p.add_argument("--json", action="store_true", help="print one JSON report per file on stdout")
     p.add_argument("--debug", action="store_true", help="debug output on stderr")
     p.add_argument("-V", "--version", action="version", version=f"blurry {__version__}")
@@ -63,7 +87,12 @@ def _progress_printer(enabled: bool):
         if state["last"] == (stage, percent) and done != total:
             return
         state["last"] = (stage, percent)
-        payload = {"stage": stage, "percent": percent, "framesProcessed": done, "totalFrames": total}
+        payload = {
+            "stage": stage,
+            "percent": percent,
+            "framesProcessed": done,
+            "totalFrames": total,
+        }
         print(f"__PROGRESS__ {json.dumps(payload)}", file=sys.stderr, flush=True)
 
     return emit
@@ -123,8 +152,11 @@ def main(argv: list[str]) -> int:
             no_faces = settings.faces and any(f.kind == "no_faces" for f in plan.flags)
 
             if no_faces:
-                print(f"blurry: warning: no face found in {label}"
-                      + (" (not written: --strict)" if args.strict else ""), file=sys.stderr)
+                print(
+                    f"blurry: warning: no face found in {label}"
+                    + (" (not written: --strict)" if args.strict else ""),
+                    file=sys.stderr,
+                )
                 if args.strict:
                     report["status"] = "no_faces"
                     exit_code = max(exit_code, EXIT_NO_FACES)

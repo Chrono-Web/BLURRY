@@ -91,7 +91,8 @@ def analyze_image(path: Path, settings: Settings, detector: FaceDetector | None)
     h, w = loaded.rgb.shape[:2]
     plan = ImagePlan(w, h, faces_expected=settings.faces)
     if settings.faces:
-        assert detector is not None
+        if detector is None:
+            raise ValueError("a detector is required to cover faces")
         plan.boxes = detector.detect(cv2.cvtColor(loaded.rgb, cv2.COLOR_RGB2BGR))
         plan.flags = image_flags(plan, detector.confidence)
     return ImageJob(path, loaded, plan)

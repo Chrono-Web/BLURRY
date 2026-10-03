@@ -26,7 +26,12 @@ MAX_PIXELS = 120_000_000
 MAX_FILE_BYTES = 300 * 1024 * 1024
 
 # Pillow format name -> output format and extension.
-_OUTPUT = {"JPEG": ("JPEG", "jpg"), "HEIF": ("JPEG", "jpg"), "WEBP": ("JPEG", "jpg"), "PNG": ("PNG", "png")}
+_OUTPUT = {
+    "JPEG": ("JPEG", "jpg"),
+    "HEIF": ("JPEG", "jpg"),
+    "WEBP": ("JPEG", "jpg"),
+    "PNG": ("PNG", "png"),
+}
 
 Image.MAX_IMAGE_PIXELS = MAX_PIXELS
 warnings.simplefilter("error", Image.DecompressionBombWarning)
