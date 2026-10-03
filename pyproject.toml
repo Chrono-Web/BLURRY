@@ -30,6 +30,9 @@ gui = ["PySide6-Essentials>=6.7"]
 [project.scripts]
 blurry = "blurry_opsec.__main__:main"
 
+[project.gui-scripts]
+blurry-app = "blurry_opsec.__main__:gui_main"
+
 [project.urls]
 Homepage = "https://github.com/Chrono-Web/BLURRY"
 Releases = "https://github.com/Chrono-Web/BLURRY/releases"

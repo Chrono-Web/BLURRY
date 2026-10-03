@@ -9,8 +9,9 @@ senza metadati: niente posizione GPS, niente modello della fotocamera, niente da
 miniatura nascosta dell'originale. Funziona tutto senza rete: niente server, account, telemetria o
 controllo degli aggiornamenti, e rifiuta di aprire connessioni anche se qualcosa ci prova.
 
-> **La versione 0.1 è un comando da terminale.** L'app per chi non usa il terminale arriva con la
-> versione 1.0.
+> Blurry è un'**app** (trascini foto e video, controlli i riquadri, esporti) e un **comando da
+> terminale** per gli script. Gli installer pronti per macOS, Windows e Linux arrivano con la
+> versione 1.0; fino ad allora si installa con Python, come spiegato sotto.
 
 ## Che cosa fa
 
@@ -41,17 +42,38 @@ sotto `flags` nel resoconto `--json`.
 
 ## Installazione
 
-Serve Python 3.12. Il modo più semplice è [pipx](https://pipx.pypa.io/) (oppure `uv tool`):
+Serve Python 3.12. Il modo più semplice è [pipx](https://pipx.pypa.io/) (oppure `uv tool`). Con
+l'app:
+
+```bash
+pipx install "blurry-opsec[gui]"
+```
+
+Solo il comando da terminale:
 
 ```bash
 pipx install blurry-opsec
 ```
 
-```bash
-uv tool install blurry-opsec
-```
+Le app pronte per macOS, Windows e Linux arrivano con la v1.0.
 
-Il comando si chiama `blurry`. Le app pronte per macOS, Windows e Linux arrivano con la v1.0.
+## L'app
+
+Lancia `blurry` senza argomenti (oppure `blurry-app`) per aprirla.
+
+1. **Trascina** foto e video nella finestra, oppure usa *Scegli file…*. Ogni file si analizza in
+   un processo separato; niente esce dal tuo computer.
+2. **Rivedi** i file. I riquadri trovati dal rilevatore sono gialli, quelli che aggiungi tu verde
+   acqua. Trascina su un'area vuota per aggiungere un riquadro, trascina un riquadro per spostarlo,
+   i suoi angoli per ridimensionarlo, premi Canc per eliminarlo. *Anteprima del risultato* mostra
+   esattamente quello che verrà esportato.
+   Nei video scorri la linea del tempo (i momenti incerti sono segnati in rosso), spegni una
+   traccia che non è un volto, o disegna un riquadro che copre un'area per un intervallo di tempo.
+3. **Esporta.** Se in un file non c'è nessun volto e non ne hai aggiunti, Blurry chiede conferma.
+
+L'app ricorda solo quattro impostazioni (sensibilità, copertura, margine, lingua): mai nomi di
+file, cartelle o file recenti. Usa un suo selettore di file, perché i dialoghi del sistema e di Qt
+tengono un elenco delle cartelle recenti.
 
 ## Uso
 

@@ -4,7 +4,13 @@ All notable changes are listed here. Versions follow [Semantic Versioning](https
 
 ## [0.1.0] — unreleased
 
-First public release: the `blurry` command.
+First public release: the desktop app and the `blurry` command.
+
+- Desktop app (PySide6, optional `gui` extra): drag and drop queue, image editor with detected and
+  manual boxes, video review with timeline, review flags, track on/off and manual boxes over a
+  span of time, result preview, explicit confirmation for files with no faces, Italian and
+  English. Processing runs in a separate, cancellable worker process. Preferences limited to
+  sensitivity, cover, margin and language; a custom file picker that remembers nothing.
 
 - Face covering with YuNet (solid black box by default, or pixelation), three detection levels,
   adjustable padding; tracks held half a second before and after in videos.

@@ -141,6 +141,19 @@ class VideoPlan:
         self.manual.append(ManualRange(start, end, Box(box.x, box.y, box.w, box.h, None, "manual")))
         self._coverage = None
 
+    def update_manual(self, index: int, start: int, end: int, box: Box) -> None:
+        start, end = max(0, start), min(self.frame_count - 1, end)
+        if end < start:
+            start, end = end, start
+        self.manual[index] = ManualRange(
+            start, end, Box(box.x, box.y, box.w, box.h, None, "manual")
+        )
+        self._coverage = None
+
+    def remove_manual(self, index: int) -> None:
+        del self.manual[index]
+        self._coverage = None
+
     def _build_coverage(self) -> dict[int, list[Box]]:
         from blurry_opsec.tracking import track_coverage
 
@@ -154,3 +167,93 @@ class VideoPlan:
             for frame in range(rng.start, rng.end + 1):
                 cov.setdefault(frame, []).append(rng.box)
         return cov
+
+
+# --- Serialization -----------------------------------------------------------
+# Plans travel between the app and its worker process as JSON over pipes. They
+# are never written to disk.
+
+
+def box_from_dict(d: dict) -> Box:
+    return Box(int(d["x"]), int(d["y"]), int(d["w"]), int(d["h"]), d.get("score"),
+               d.get("source", "auto"))  # fmt: skip
+
+
+def flag_from_dict(d: dict) -> Flag:
+    return Flag(d["kind"], d.get("frame"), d.get("track"), d.get("box"))
+
+
+def image_plan_to_dict(p: ImagePlan) -> dict:
+    return {
+        "type": "image",
+        "width": p.width,
+        "height": p.height,
+        "boxes": [b.to_dict() for b in p.boxes],
+        "flags": [f.to_dict() for f in p.flags],
+        "faces_expected": p.faces_expected,
+    }
+
+
+def image_plan_from_dict(d: dict) -> ImagePlan:
+    return ImagePlan(
+        d["width"],
+        d["height"],
+        [box_from_dict(b) for b in d["boxes"]],
+        [flag_from_dict(f) for f in d.get("flags", [])],
+        d.get("faces_expected", True),
+    )
+
+
+def video_plan_to_dict(p: VideoPlan) -> dict:
+    return {
+        "type": "video",
+        "width": p.width,
+        "height": p.height,
+        "frame_count": p.frame_count,
+        "fps": p.fps,
+        "extend_frames": p.extend_frames,
+        "tracks": [
+            {
+                "id": t.id,
+                "enabled": t.enabled,
+                "detections": [[f, b.to_dict()] for f, b in sorted(t.detections.items())],
+            }
+            for t in p.tracks
+        ],
+        "flags": [f.to_dict() for f in p.flags],
+        "manual": [{"start": m.start, "end": m.end, "box": m.box.to_dict()} for m in p.manual],
+        "faces_expected": p.faces_expected,
+        "max_simultaneous": p.max_simultaneous,
+    }
+
+
+def video_plan_from_dict(d: dict) -> VideoPlan:
+    return VideoPlan(
+        width=d["width"],
+        height=d["height"],
+        frame_count=d["frame_count"],
+        fps=d["fps"],
+        extend_frames=d["extend_frames"],
+        tracks=[
+            Track(
+                t["id"],
+                {int(f): box_from_dict(b) for f, b in t["detections"]},
+                t.get("enabled", True),
+            )
+            for t in d["tracks"]
+        ],
+        flags=[flag_from_dict(f) for f in d.get("flags", [])],
+        manual=[
+            ManualRange(m["start"], m["end"], box_from_dict(m["box"])) for m in d.get("manual", [])
+        ],
+        faces_expected=d.get("faces_expected", True),
+        max_simultaneous=d.get("max_simultaneous", 0),
+    )
+
+
+def plan_to_dict(p: ImagePlan | VideoPlan) -> dict:
+    return image_plan_to_dict(p) if isinstance(p, ImagePlan) else video_plan_to_dict(p)
+
+
+def plan_from_dict(d: dict) -> ImagePlan | VideoPlan:
+    return image_plan_from_dict(d) if d["type"] == "image" else video_plan_from_dict(d)

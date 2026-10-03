@@ -179,13 +179,20 @@ def probe(path: Path) -> VideoInfo:
 
 
 def iter_frames(
-    path: Path, progress: ProgressFn | None = None, total: int = 0
+    path: Path,
+    progress: ProgressFn | None = None,
+    total: int = 0,
+    pts_out: list | None = None,
 ) -> Iterator[np.ndarray]:
-    """Decode every frame of the main video track, in display orientation (BGR)."""
+    """Decode every frame of the main video track, in display orientation (BGR).
+    If `pts_out` is given, each frame's timestamp is appended to it, so that a
+    frame can later be found again by seeking (see read_frame)."""
     with open_input(path) as container:
         video, _ = _main_streams(container, keep_audio=False)
         video.thread_type = "AUTO"
         for index, frame in enumerate(container.decode(video)):
+            if pts_out is not None:
+                pts_out.append(frame.pts)
             yield _rotate(frame)
             if progress:
                 progress(index + 1, total)
@@ -196,6 +203,24 @@ def frame_at(path: Path, index: int) -> np.ndarray:
         if i == index:
             return arr
     raise IndexError(index)
+
+
+def read_frame(path: Path, index: int, pts: list | None = None) -> np.ndarray:
+    """One display-oriented BGR frame, by index. With the timestamps recorded
+    during analysis it seeks to the nearest keyframe instead of decoding the
+    whole video from the start."""
+    target = pts[index] if pts and 0 <= index < len(pts) else None
+    if target is None:
+        return frame_at(path, index)
+    with open_input(path) as container:
+        video, _ = _main_streams(container, keep_audio=False)
+        container.seek(target, stream=video, backward=True, any_frame=False)
+        for frame in container.decode(video):
+            if frame.pts is None:
+                break
+            if frame.pts >= target:
+                return _rotate(frame)
+    return frame_at(path, index)
 
 
 def render(

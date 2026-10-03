@@ -65,6 +65,7 @@ class VideoJob:
     source: Path
     info: video_io.VideoInfo
     plan: VideoPlan
+    pts: list = field(default_factory=list)  # per-frame timestamps, for seeking
 
 
 @dataclass
@@ -122,7 +123,8 @@ def analyze_video(
     detections = []
     count = 0
     report = (lambda d, t: progress("analyzing", d, t)) if progress else None
-    for frame in video_io.iter_frames(path, report, info.estimated_frames):
+    pts: list = []
+    for frame in video_io.iter_frames(path, report, info.estimated_frames, pts):
         count += 1
         detections.append(detector.detect(frame) if settings.faces and detector else [])
     if count == 0:
@@ -142,7 +144,7 @@ def analyze_video(
         plan.max_simultaneous = tracking.max_simultaneous(detections)
         if not plan.tracks:
             plan.flags.append(Flag(NO_FACES))
-    return VideoJob(path, info, plan)
+    return VideoJob(path, info, plan, pts)
 
 
 def render_video(

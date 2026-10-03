@@ -9,8 +9,9 @@ no metadata: no GPS position, no camera model, no dates, no hidden thumbnail of 
 runs entirely offline. It has no server, no account, no telemetry and no update check, and it
 refuses to open network connections even if something tries.
 
-> **Version 0.1 is a command-line tool.** A desktop app for people who do not use the terminal
-> comes with version 1.0.
+> Blurry is a **desktop app** (drag in your photos and videos, check the boxes, export) and a
+> **command-line tool** for scripts. Ready-made installers for macOS, Windows and Linux come with
+> version 1.0; until then, install it with Python as shown below.
 
 ## What it does
 
@@ -41,17 +42,37 @@ under `flags` in the `--json` report.
 
 ## Install
 
-You need Python 3.12. The simplest way is [pipx](https://pipx.pypa.io/) (or `uv tool`):
+You need Python 3.12. The simplest way is [pipx](https://pipx.pypa.io/) (or `uv tool`). With the
+desktop app:
+
+```bash
+pipx install "blurry-opsec[gui]"
+```
+
+Command line only:
 
 ```bash
 pipx install blurry-opsec
 ```
 
-```bash
-uv tool install blurry-opsec
-```
+Ready-made apps for macOS, Windows and Linux come with v1.0.
 
-The command is called `blurry`. Ready-made apps for macOS, Windows and Linux come with v1.0.
+## The app
+
+Run `blurry` with no arguments (or `blurry-app`) to open it.
+
+1. **Drop** photos and videos on the window, or use *Choose files…*. Each file is analysed in a
+   separate process; nothing leaves your computer.
+2. **Review** any file. Boxes found by the detector are yellow, boxes you add are teal. Drag on an
+   empty area to add a box, drag a box to move it, drag its corners to resize it, press Delete to
+   remove it. *Preview result* shows exactly what will be exported.
+   In videos, scrub the timeline (uncertain moments are marked in red), turn off a track that is
+   not a face, or draw a box that covers an area for a span of time.
+3. **Export.** If a file has no face and you added none, Blurry asks before exporting it.
+
+The app remembers only four settings (sensitivity, cover, margin, language): never file names,
+folders or recent files. It uses its own file picker, because the system's and Qt's dialogs keep
+a list of recent folders.
 
 ## Use
 
