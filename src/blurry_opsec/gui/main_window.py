@@ -2,22 +2,17 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import QLocale, QSize, Qt, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
-    QButtonGroup,
-    QCheckBox,
-    QComboBox,
-    QFrame,
     QHBoxLayout,
     QHeaderView,
-    QLabel,
     QMainWindow,
     QMessageBox,
     QPushButton,
-    QRadioButton,
     QSlider,
     QStackedWidget,
     QTreeWidget,
@@ -29,9 +24,19 @@ from PySide6.QtWidgets import (
 from blurry_opsec import engine, i18n, image_io, levels, video_io
 from blurry_opsec.files import InputError
 from blurry_opsec.gui import model as m
-from blurry_opsec.gui import picker, style
+from blurry_opsec.gui import native, picker
 from blurry_opsec.gui.prefs import Prefs
 from blurry_opsec.gui.review import ImageReview, VideoReview
+from blurry_opsec.gui.widgets import (
+    STATUS_ROLE,
+    DragArea,
+    GlassPanel,
+    HudFrame,
+    PillDelegate,
+    Segmented,
+    Switch,
+    label,
+)
 from blurry_opsec.gui.worker_client import WorkerClient
 from blurry_opsec.i18n import t
 from blurry_opsec.plan import plan_from_dict, plan_to_dict
@@ -39,19 +44,14 @@ from blurry_opsec.plan import plan_from_dict, plan_to_dict
 RELEASES_URL = "https://github.com/Chrono-Web/BLURRY/releases"
 ACCEPTED = sorted(image_io.IMAGE_EXTENSIONS | video_io.VIDEO_EXTENSIONS)
 WINDOW_TITLE = "Blurry"  # never a file name (R2)
-
-
-class DropFrame(QFrame):
-    def set_active(self, active: bool) -> None:
-        self.setProperty("active", "true" if active else "false")
-        self.style().unpolish(self)
-        self.style().polish(self)
+IS_MAC = sys.platform == "darwin"
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, prefs: Prefs) -> None:
+    def __init__(self, prefs: Prefs, glass: bool = False) -> None:
         super().__init__()
         self.prefs = prefs
+        self.glass = glass  # native window material underneath (macOS)
         lang = prefs.language or ("it" if QLocale.system().name().startswith("it") else "en")
         i18n.set_language(lang)
         self.items: list[m.Item] = []
@@ -67,15 +67,22 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle(WINDOW_TITLE)
         self.setAcceptDrops(True)
-        self.resize(1180, 760)
-        self.setMinimumSize(900, 600)
+        self.resize(1200, 780)
+        self.setMinimumSize(940, 620)
+        if glass:
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         root = QWidget()
         root.setObjectName("root")
+        if glass:
+            # The content runs under the transparent title bar; the header leaves
+            # room for the traffic lights itself.
+            for w in (self, root):
+                w.setAttribute(Qt.WidgetAttribute.WA_ContentsMarginsRespectsSafeArea, False)
         outer = QVBoxLayout(root)
-        outer.setContentsMargins(18, 14, 18, 14)
-        outer.setSpacing(12)
-        outer.addLayout(self._build_header())
+        outer.setContentsMargins(18, 4 if glass else 14, 18, 16)
+        outer.setSpacing(14)
+        outer.addWidget(self._build_header())
         self.stack = QStackedWidget()
         self.home = self._build_home()
         self.stack.addWidget(self.home)
@@ -85,70 +92,78 @@ class MainWindow(QMainWindow):
         self.refresh_queue()
 
     # -- layout ------------------------------------------------------------------
-    def _build_header(self) -> QHBoxLayout:
-        h = QHBoxLayout()
-        wordmark = QLabel("BLURRY")
-        wordmark.setObjectName("wordmark")
-        self.chip = QLabel()
-        self.chip.setObjectName("chip")
-        self.tagline = QLabel()
-        self.tagline.setObjectName("muted")
-        self.lang_combo = QComboBox()
-        for code, name in i18n.LANGUAGES.items():
-            self.lang_combo.addItem(name, code)
-        self.lang_combo.currentIndexChanged.connect(self._on_language)
+    def _build_header(self) -> QWidget:
+        bar = DragArea()
+        h = QHBoxLayout(bar)
+        left = native.TRAFFIC_LIGHTS_WIDTH if self.glass else 0
+        h.setContentsMargins(left, 0, 0, 0)
+        if self.glass:
+            bar.setFixedHeight(native.TITLEBAR_HEIGHT + 4)  # centred on the traffic lights
+        h.setSpacing(12)
+        h.addWidget(label("BLURRY", "wordmark"))
+        self.chip = label("", "chip")
+        h.addWidget(self.chip)
+        self.tagline = label("", "muted")
+        h.addSpacing(6)
+        h.addWidget(self.tagline)
+        h.addStretch(1)
+        self.lang_seg = Segmented([(c, c.upper()) for c in i18n.LANGUAGES], i18n.language())
+        self.lang_seg.setFixedWidth(84)
+        self.lang_seg.changed.connect(self._on_language)
+        h.addWidget(self.lang_seg)
         self.updates_btn = QPushButton()
         self.updates_btn.setObjectName("link")
         self.updates_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(RELEASES_URL)))
-        h.addWidget(wordmark)
-        h.addSpacing(10)
-        h.addWidget(self.chip)
-        h.addSpacing(14)
-        h.addWidget(self.tagline)
-        h.addStretch(1)
-        h.addWidget(self.lang_combo)
         h.addWidget(self.updates_btn)
-        return h
+        return bar
 
     def _build_home(self) -> QWidget:
         page = QWidget()
+        page.setObjectName("page")
         h = QHBoxLayout(page)
         h.setContentsMargins(0, 0, 0, 0)
         h.setSpacing(14)
 
         left = QVBoxLayout()
-        self.drop = DropFrame()
+        left.setSpacing(14)
+        self.drop = HudFrame()
         self.drop.setObjectName("drop")
-        self.drop.setMinimumHeight(150)
         dl = QVBoxLayout(self.drop)
         dl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.drop_title = QLabel()
-        self.drop_title.setObjectName("dropTitle")
+        dl.setSpacing(6)
+        self.drop_title = label("", "dropTitle")
         self.drop_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.drop_formats = QLabel()
-        self.drop_formats.setObjectName("hint")
+        self.drop_formats = label("", "dropFormats")
         self.drop_formats.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.choose_btn = QPushButton()
         self.choose_btn.clicked.connect(self.choose_files)
         dl.addWidget(self.drop_title)
         dl.addWidget(self.drop_formats)
-        dl.addSpacing(6)
+        dl.addSpacing(8)
         dl.addWidget(self.choose_btn, 0, Qt.AlignmentFlag.AlignCenter)
         left.addWidget(self.drop)
 
+        queue_panel = GlassPanel()
+        ql = QVBoxLayout(queue_panel)
+        ql.setContentsMargins(10, 8, 10, 10)
         self.queue = QTreeWidget()
         self.queue.setColumnCount(3)
         self.queue.setRootIsDecorated(False)
-        self.queue.setAlternatingRowColors(True)
-        self.queue.setIconSize(QSize(36, 28))
+        self.queue.setIconSize(QSize(40, 30))
         self.queue.setSelectionMode(QTreeWidget.SelectionMode.ExtendedSelection)
         self.queue.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.queue.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        self.queue.header().setSectionResizeMode(2, QHeaderView.ResizeMode.Interactive)
-        self.queue.header().resizeSection(2, 230)
+        self.queue.header().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        self.queue.header().resizeSection(1, 64)
+        self.queue.header().setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        self.queue.header().resizeSection(2, 250)
+        self.queue.setItemDelegateForColumn(2, PillDelegate(self.queue))
         self.queue.itemDoubleClicked.connect(lambda *_: self.open_review())
         self.queue.itemSelectionChanged.connect(self._update_buttons)
-        left.addWidget(self.queue, 1)
+        ql.addWidget(self.queue, 1)
+        self.empty_hint = label("", "hint")
+        self.empty_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ql.addWidget(self.empty_hint)
+        left.addWidget(queue_panel, 1)
 
         buttons = QHBoxLayout()
         self.review_btn = QPushButton()
@@ -162,126 +177,116 @@ class MainWindow(QMainWindow):
         self.export_all_btn = QPushButton()
         self.export_all_btn.setObjectName("primary")
         self.export_all_btn.clicked.connect(lambda: self.export(selected_only=False))
-        buttons.addWidget(self.review_btn)
-        buttons.addWidget(self.remove_btn)
-        buttons.addWidget(self.cancel_btn)
+        for b in (self.review_btn, self.remove_btn, self.cancel_btn):
+            buttons.addWidget(b)
         buttons.addStretch(1)
         buttons.addWidget(self.export_sel_btn)
         buttons.addWidget(self.export_all_btn)
         left.addLayout(buttons)
         h.addLayout(left, 1)
 
-        panel = QWidget()
-        panel.setObjectName("panel")
+        panel = GlassPanel()
         panel.setFixedWidth(300)
         p = QVBoxLayout(panel)
-        p.setContentsMargins(16, 16, 16, 16)
+        p.setContentsMargins(18, 18, 18, 18)
         p.setSpacing(8)
-        self.settings_title = QLabel()
-        self.settings_title.setObjectName("section")
+        self.settings_title = label()
         p.addWidget(self.settings_title)
+        p.addSpacing(8)
 
-        self.level_label = QLabel()
-        self.level_combo = QComboBox()
-        for name in levels.LEVELS:
-            self.level_combo.addItem(name, name)
-        self.level_combo.setCurrentIndex(list(levels.LEVELS).index(self.prefs.level))
-        self.level_combo.currentIndexChanged.connect(self._on_level)
-        self.level_desc = QLabel()
-        self.level_desc.setObjectName("hint")
+        self.level_label = label()
+        self.level_seg = Segmented([(k, k) for k in levels.LEVELS], self.prefs.level)
+        self.level_seg.changed.connect(self._on_level)
+        self.level_desc = label("", "hint")
         self.level_desc.setWordWrap(True)
         p.addWidget(self.level_label)
-        p.addWidget(self.level_combo)
+        p.addWidget(self.level_seg)
         p.addWidget(self.level_desc)
-        p.addSpacing(6)
+        p.addSpacing(10)
 
-        self.mode_label = QLabel()
-        self.mode_solid = QRadioButton()
-        self.mode_pixel = QRadioButton()
-        self.mode_group = QButtonGroup(self)
-        self.mode_group.addButton(self.mode_solid)
-        self.mode_group.addButton(self.mode_pixel)
-        (self.mode_solid if self.prefs.mode == "solid" else self.mode_pixel).setChecked(True)
-        self.mode_group.buttonToggled.connect(self._on_mode)
-        mode_row = QHBoxLayout()
-        mode_row.addWidget(self.mode_solid)
-        mode_row.addWidget(self.mode_pixel)
+        self.mode_label = label()
+        self.mode_seg = Segmented([("solid", "solid"), ("pixel", "pixel")], self.prefs.mode)
+        self.mode_seg.changed.connect(self._on_mode)
         p.addWidget(self.mode_label)
-        p.addLayout(mode_row)
-        p.addSpacing(6)
+        p.addWidget(self.mode_seg)
+        p.addSpacing(10)
 
-        self.padding_label = QLabel()
+        pad_row = QHBoxLayout()
+        self.padding_label = label()
+        self.padding_value = label("", "value")
+        pad_row.addWidget(self.padding_label)
+        pad_row.addStretch(1)
+        pad_row.addWidget(self.padding_value)
         self.padding_slider = QSlider(Qt.Orientation.Horizontal)
         self.padding_slider.setRange(0, 60)
         self.padding_slider.setValue(int(round(self.prefs.padding * 100)))
         self.padding_slider.valueChanged.connect(self._on_padding)
-        p.addWidget(self.padding_label)
+        p.addLayout(pad_row)
         p.addWidget(self.padding_slider)
-        p.addSpacing(6)
+        p.addSpacing(10)
 
-        self.audio_box = QCheckBox()  # not saved: off at every start
-        self.audio_warning = QLabel()
-        self.audio_warning.setObjectName("warning")
-        p.addWidget(self.audio_box)
+        audio_row = QHBoxLayout()
+        self.audio_label = label("", "muted")
+        self.audio_label.setStyleSheet("color: white;")
+        self.audio_box = Switch()  # not saved: off at every start
+        audio_row.addWidget(self.audio_label)
+        audio_row.addStretch(1)
+        audio_row.addWidget(self.audio_box)
+        self.audio_warning = label("", "warning")
+        p.addLayout(audio_row)
         p.addWidget(self.audio_warning)
-        p.addSpacing(6)
+        p.addSpacing(10)
 
-        self.dest_label = QLabel()
-        self.dest_next = QRadioButton()
-        self.dest_folder = QRadioButton()
-        self.dest_group = QButtonGroup(self)
-        self.dest_group.addButton(self.dest_next)
-        self.dest_group.addButton(self.dest_folder)
-        self.dest_next.setChecked(True)
-        self.dest_folder.clicked.connect(self.choose_out_dir)
-        self.dest_next.clicked.connect(self._dest_next)
-        self.dest_path = QLabel()
-        self.dest_path.setObjectName("hint")
+        self.dest_label = label()
+        self.dest_seg = Segmented([("next", "next"), ("folder", "folder")], "next")
+        self.dest_seg.changed.connect(self._on_dest)
+        self.dest_path = label("", "hint")
         self.dest_path.setWordWrap(True)
         p.addWidget(self.dest_label)
-        p.addWidget(self.dest_next)
-        p.addWidget(self.dest_folder)
+        p.addWidget(self.dest_seg)
         p.addWidget(self.dest_path)
         p.addStretch(1)
-        self.always_removed = QLabel()
-        self.always_removed.setObjectName("hint")
+        self.always_removed = label("", "hint")
         self.always_removed.setWordWrap(True)
         p.addWidget(self.always_removed)
         h.addWidget(panel)
         return page
 
     def retranslate(self) -> None:
-        self.lang_combo.blockSignals(True)
-        self.lang_combo.setCurrentIndex(list(i18n.LANGUAGES).index(i18n.language()))
-        self.lang_combo.blockSignals(False)
+        self.lang_seg.set_value(i18n.language())
         self.chip.setText("●  " + t("offline"))
         self.tagline.setText(t("tagline"))
         self.updates_btn.setText(t("updates"))
         self.updates_btn.setToolTip(t("updates_tip"))
         self.drop_title.setText(t("drop_title"))
-        self.drop_formats.setText(t("drop_formats"))
+        self.drop_formats.setText(t("drop_formats").upper())
         self.choose_btn.setText(t("choose_files"))
-        self.queue.setHeaderLabels([t("col_file"), t("col_faces"), t("col_status")])
+        self.queue.setHeaderLabels([t("col_file").upper(), t("col_faces").upper(),
+                                    t("col_status").upper()])  # fmt: skip
+        self.empty_hint.setText(t("queue_empty"))
         self.review_btn.setText(t("review"))
         self.remove_btn.setText(t("remove"))
         self.cancel_btn.setText(t("cancel"))
         self.export_sel_btn.setText(t("export_selected"))
         self.export_all_btn.setText(t("export_all"))
         self.settings_title.setText(t("settings").upper())
-        self.level_label.setText(t("level"))
         lang = i18n.language()
-        for i, lvl in enumerate(levels.LEVELS.values()):
-            self.level_combo.setItemText(i, lvl.label[lang])
+        self.level_label.setText(t("level").upper())
+        self.level_seg.set_texts({k: v.label[lang].upper() for k, v in levels.LEVELS.items()})
         self.level_desc.setText(levels.get(self.level).description[lang])
-        self.mode_label.setText(t("mode"))
-        self.mode_solid.setText(t("mode_solid"))
-        self.mode_pixel.setText(t("mode_pixel"))
+        self.mode_label.setText(t("mode").upper())
+        self.mode_seg.set_texts(
+            {"solid": t("mode_solid").upper(), "pixel": t("mode_pixel").upper()}
+        )
+        self.padding_label.setText(t("padding").upper())
         self._update_padding_label()
-        self.audio_box.setText(t("keep_audio"))
-        self.audio_warning.setText("⚠ " + t("audio_warning"))
-        self.dest_label.setText(t("destination"))
-        self.dest_next.setText(t("dest_next"))
-        self.dest_folder.setText(t("dest_folder"))
+        self.audio_label.setText(t("keep_audio"))
+        self.audio_warning.setText(t("audio_warning"))
+        self.dest_label.setText(t("destination").upper())
+        self.dest_seg.set_texts(
+            {"next": t("dest_next").upper(), "folder": t("dest_folder").upper()}
+        )
+        self.dest_seg.setToolTip(t("dest_next_tip"))
         self.always_removed.setText(t("always_removed"))
         if self.review is not None:
             self.review.retranslate()
@@ -290,11 +295,11 @@ class MainWindow(QMainWindow):
     # -- settings ------------------------------------------------------------------
     @property
     def level(self) -> str:
-        return self.level_combo.currentData()
+        return self.level_seg.value()
 
     @property
     def mode(self) -> str:
-        return "solid" if self.mode_solid.isChecked() else "pixel"
+        return self.mode_seg.value()
 
     @property
     def padding(self) -> float:
@@ -304,21 +309,19 @@ class MainWindow(QMainWindow):
         return {"level": self.level, "mode": self.mode, "padding": self.padding,
                 "keep_audio": self.audio_box.isChecked(), "faces": True}  # fmt: skip
 
-    def _on_language(self) -> None:
-        code = self.lang_combo.currentData()
+    def _on_language(self, code: str) -> None:
         i18n.set_language(code)
         self.prefs.language = code
         self.retranslate()
 
-    def _on_level(self) -> None:
-        new = self.level
+    def _on_level(self, new: str) -> None:
+        if new == self.prefs.level:
+            return
         edited = any(it.edited for it in self.items if it.status != m.EXPORTED)
         if edited:
             answer = QMessageBox.question(self, t("reanalyze_title"), t("reanalyze_text"))
             if answer != QMessageBox.StandardButton.Yes:
-                self.level_combo.blockSignals(True)
-                self.level_combo.setCurrentIndex(list(levels.LEVELS).index(self.prefs.level))
-                self.level_combo.blockSignals(False)
+                self.level_seg.set_value(self.prefs.level)
                 return
         self.prefs.level = new
         self.level_desc.setText(levels.get(new).description[i18n.language()])
@@ -345,19 +348,28 @@ class MainWindow(QMainWindow):
             self.review.refresh_settings()
 
     def _update_padding_label(self) -> None:
-        self.padding_label.setText(f"{t('padding')}: {self.padding_slider.value()}%")
+        self.padding_value.setText(f"{self.padding_slider.value()}%")
+
+    def _on_dest(self, key: str) -> None:
+        if key == "folder":
+            self.choose_out_dir()
+        else:
+            self.out_dir = None
+            self.dest_path.setText("")
 
     def choose_out_dir(self) -> None:
         folder = picker.choose_folder(self)
         if folder:
             self.out_dir = folder
-            self.dest_path.setText(folder.name or str(folder))
+            self.dest_path.setText("→ " + (folder.name or str(folder)))
         elif self.out_dir is None:
-            self.dest_next.setChecked(True)
+            self.dest_seg.set_value("next")
 
-    def _dest_next(self) -> None:
-        self.out_dir = None
-        self.dest_path.setText("")
+    def showEvent(self, e) -> None:  # noqa: N802
+        super().showEvent(e)
+        if self.glass and not getattr(self, "_glass_applied", False):
+            self._glass_applied = True
+            native.apply_macos_glass(self)
 
     # -- adding files --------------------------------------------------------------
     def dragEnterEvent(self, e) -> None:  # noqa: N802
@@ -420,29 +432,22 @@ class MainWindow(QMainWindow):
     def refresh_queue(self) -> None:
         selected = {id(self._item_of(w)) for w in self.queue.selectedItems()}
         self.queue.clear()
-        color = {m.NO_FACES_FOUND: style.DANGER, m.ERROR: style.DANGER, m.REVIEW: style.AUTO,
-                 m.EXPORTED: style.OK}  # fmt: skip
         for it in self.items:
             kind = t("kind_image") if it.kind == "image" else t("kind_video")
             w = QTreeWidgetItem([f"{it.name}", "" if it.faces is None else str(it.faces),
-                                 self.status_text(it)])  # fmt: skip
+                                 self.status_text(it).upper()])  # fmt: skip
             w.setToolTip(0, kind)
             if it.thumb is not None:
                 w.setIcon(0, it.thumb)
-            if it.status in color:
-                w.setForeground(2, self._brush(color[it.status]))
             w.setData(0, Qt.ItemDataRole.UserRole, id(it))
+            w.setData(2, STATUS_ROLE, it.status)
             self.queue.addTopLevelItem(w)
             if id(it) in selected:
                 w.setSelected(True)
-        self.drop.setMinimumHeight(260 if not self.items else 130)
+        self.drop.setMinimumHeight(300 if not self.items else 140)
+        self.drop.setMaximumHeight(16777215 if not self.items else 160)
+        self.empty_hint.setVisible(not self.items)
         self._update_buttons()
-
-    @staticmethod
-    def _brush(color: str):
-        from PySide6.QtGui import QBrush, QColor
-
-        return QBrush(QColor(color))
 
     def _item_of(self, w: QTreeWidgetItem) -> m.Item | None:
         key = w.data(0, Qt.ItemDataRole.UserRole)
@@ -573,7 +578,7 @@ class MainWindow(QMainWindow):
         for i in range(self.queue.topLevelItemCount()):
             w = self.queue.topLevelItem(i)
             if w.data(0, Qt.ItemDataRole.UserRole) == id(it):
-                w.setText(2, self.status_text(it))
+                w.setText(2, self.status_text(it).upper())
 
     def _on_worker_crashed(self) -> None:
         self.statusBar().showMessage(t("worker_crashed"), 6000)

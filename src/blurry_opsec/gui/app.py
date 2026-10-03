@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import platform
 import sys
 
 from PySide6.QtCore import QSettings
+from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import QApplication
 
 from blurry_opsec import tempfiles
+from blurry_opsec.gui import style
 from blurry_opsec.gui.main_window import MainWindow
 from blurry_opsec.gui.prefs import APP_NAME, ORG_DOMAIN, Prefs
-from blurry_opsec.gui.style import QSS
 
 
 def _contain_qt_settings() -> None:
@@ -31,7 +33,9 @@ def run(argv: list[str] | None = None) -> int:
     app.setApplicationName(APP_NAME)
     app.setApplicationDisplayName("Blurry")
     app.setStyle("Fusion")
-    app.setStyleSheet(QSS)
-    window = MainWindow(Prefs())
+    QFontDatabase.addApplicationFont(str(style.MONO_FILE))
+    glass = sys.platform == "darwin" and platform.machine() == "arm64"
+    app.setStyleSheet(style.qss(glass))
+    window = MainWindow(Prefs(), glass=glass)
     window.show()
     return app.exec()

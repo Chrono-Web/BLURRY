@@ -7,7 +7,6 @@ from collections.abc import Callable
 from PySide6.QtCore import QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QImage, QKeySequence, QPainter, QPen, QShortcut
 from PySide6.QtWidgets import (
-    QCheckBox,
     QDoubleSpinBox,
     QHBoxLayout,
     QLabel,
@@ -23,6 +22,7 @@ from blurry_opsec import tracking
 from blurry_opsec.gui import style
 from blurry_opsec.gui.canvas import Canvas, CanvasBox
 from blurry_opsec.gui.model import Item, decode_preview, preview_result
+from blurry_opsec.gui.widgets import Switch, label
 from blurry_opsec.i18n import t
 from blurry_opsec.plan import NEAR_THRESHOLD, SMALL_FACE, TRACK_GAP, Box, ImagePlan, VideoPlan
 
@@ -30,9 +30,9 @@ SettingsFn = Callable[[], dict]
 
 
 def _legend(color: str) -> QLabel:
-    dot = QLabel("■")
-    dot.setStyleSheet(f"color: {color}; font-size: 14px;")
-    return dot
+    mark = QLabel("⌜⌟")
+    mark.setStyleSheet(f"color: {color}; font-size: 13px; font-weight: 700;")
+    return mark
 
 
 class _ReviewBase(QWidget):
@@ -48,9 +48,10 @@ class _ReviewBase(QWidget):
         self.back_btn.clicked.connect(self.finished)
         self.name = QLabel(item.name)
         self.name.setObjectName("muted")
-        self.legend_auto = QLabel()
-        self.legend_manual = QLabel()
-        self.preview_box = QCheckBox()
+        self.legend_auto = label()
+        self.legend_manual = label()
+        self.preview_label = label()
+        self.preview_box = Switch()
         self.preview_box.toggled.connect(self._on_preview)
         self.done_btn = QPushButton()
         self.done_btn.setObjectName("primary")
@@ -60,12 +61,13 @@ class _ReviewBase(QWidget):
         top.addSpacing(8)
         top.addWidget(self.name)
         top.addStretch(1)
-        for color, label in ((style.AUTO, self.legend_auto), (style.MANUAL, self.legend_manual)):
+        for color, legend in ((style.AUTO, self.legend_auto), (style.MANUAL, self.legend_manual)):
             top.addWidget(_legend(color))
-            top.addWidget(label)
+            top.addWidget(legend)
             top.addSpacing(10)
+        top.addWidget(self.preview_label)
         top.addWidget(self.preview_box)
-        top.addSpacing(10)
+        top.addSpacing(14)
         top.addWidget(self.done_btn)
         self.banner = QLabel()
         self.banner.setWordWrap(True)
@@ -82,9 +84,9 @@ class _ReviewBase(QWidget):
     def retranslate(self) -> None:
         self.back_btn.setText(t("back"))
         self.done_btn.setText(t("done"))
-        self.preview_box.setText(t("preview"))
-        self.legend_auto.setText(t("legend_auto"))
-        self.legend_manual.setText(t("legend_manual"))
+        self.preview_label.setText(t("preview").upper())
+        self.legend_auto.setText(t("legend_auto").upper())
+        self.legend_manual.setText(t("legend_manual").upper())
         self.update_banner()
 
     def update_banner(self) -> None:
@@ -188,20 +190,20 @@ class Timeline(QWidget):
 
     def paintEvent(self, _event) -> None:  # noqa: N802
         p = QPainter(self)
-        p.fillRect(self.rect(), QColor(style.SURFACE))
-        p.setPen(QPen(QColor(style.BORDER), 1))
-        p.drawRect(self.rect().adjusted(0, 0, -1, -1))
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setPen(QPen(QColor(255, 255, 255, 26), 1))
+        p.setBrush(QColor(style.SURFACE))
+        p.drawRoundedRect(QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5), 8, 8)
         n = max(1, len(self.rows))
         row_h = max(3.0, min(10.0, (self.height() - 16) / n))
         for i, (spans, color, dashed) in enumerate(self.rows):
             y = 8 + i * row_h
             c = QColor(color)
-            if dashed:
-                c.setAlpha(90)
+            c.setAlpha(70 if dashed else 200)
             for a, b in spans:
                 p.fillRect(QRectF(self.x_of(a), y, max(2.0, self.x_of(b) - self.x_of(a)),
                                   row_h - 1), c)  # fmt: skip
-        p.setPen(QPen(QColor(style.DANGER), 2))
+        p.setPen(QPen(QColor(style.WARN), 2))
         for f in self.markers:
             x = self.x_of(f)
             p.drawLine(int(x), self.height() - 7, int(x), self.height() - 2)
@@ -272,13 +274,11 @@ class VideoReview(_ReviewBase):
         left.addWidget(self.timeline)
         left.addWidget(self.help)
 
-        self.tracks_title = QLabel()
-        self.tracks_title.setObjectName("section")
+        self.tracks_title = label()
         self.track_list = QListWidget()
         self.track_list.itemChanged.connect(self._on_track_toggled)
         self.track_list.itemClicked.connect(self._on_track_clicked)
-        self.manual_title = QLabel()
-        self.manual_title.setObjectName("section")
+        self.manual_title = label()
         self.manual_list = QListWidget()
         self.manual_list.currentRowChanged.connect(self._on_manual_selected)
         self.from_label, self.to_label = QLabel(), QLabel()
@@ -493,7 +493,8 @@ class VideoReview(_ReviewBase):
 
         rows = []
         for tr in self.plan.tracks:
-            rows.append((_spans(self.coverage[tr.id]), style.AUTO, not tr.enabled))
+            rows.append((_spans(self.coverage[tr.id]), style.AUTO if tr.enabled else style.OFF,
+                         not tr.enabled))  # fmt: skip
         for m in self.plan.manual:
             rows.append(([(m.start, m.end)], style.MANUAL, False))
         self.timeline.rows = rows

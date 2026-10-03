@@ -63,6 +63,7 @@ select = ["E", "F", "W", "I", "B", "UP", "S"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S603", "S607"]
+"src/blurry_opsec/gui/style.py" = ["E501"]  # stylesheet text
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

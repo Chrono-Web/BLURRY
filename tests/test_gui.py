@@ -26,7 +26,7 @@ def qapp(tmp_path_factory):
 
     gapp._contain_qt_settings()
     qa = QApplication.instance() or QApplication([])
-    qa.setStyleSheet(gapp.QSS)
+    qa.setStyleSheet(gapp.style.qss(False))
     yield qa, prefs
 
 
@@ -121,9 +121,8 @@ def test_no_qt_file_dialog_and_picker_remembers_nothing(qapp, window, tmp_path):
 
 
 def test_language_switch(qapp, window):
-    from blurry_opsec import i18n
-
-    window.lang_combo.setCurrentIndex(list(i18n.LANGUAGES).index("it"))
+    window.lang_seg._buttons["it"].click()
     assert window.export_all_btn.text() == "Esporta tutti"
-    window.lang_combo.setCurrentIndex(list(i18n.LANGUAGES).index("en"))
+    assert window.prefs.language == "it"
+    window.lang_seg._buttons["en"].click()
     assert window.export_all_btn.text() == "Export all"

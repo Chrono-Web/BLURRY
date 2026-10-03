@@ -13,6 +13,7 @@ from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsRectItem, QGraphicsScene, QGraphicsView
 
 from blurry_opsec.gui import style
+from blurry_opsec.gui.widgets import corner_ticks
 from blurry_opsec.plan import Box
 
 HANDLE_PX = 9  # corner grab area, in screen pixels
@@ -38,15 +39,8 @@ class BoxItem(QGraphicsRectItem):
             flags |= QGraphicsItem.GraphicsItemFlag.ItemIsFocusable
         self.setFlags(flags if spec.editable else QGraphicsItem.GraphicsItemFlag(0))
         self.setAcceptHoverEvents(spec.editable)
-        color = {"auto": style.AUTO, "manual": style.MANUAL}.get(spec.kind, style.MUTED)
-        pen = QPen(QColor(color), 2)
-        pen.setCosmetic(True)
-        if spec.kind == "off":
-            pen.setStyle(Qt.PenStyle.DashLine)
-        self.setPen(pen)
-        fill = QColor(color)
-        fill.setAlpha(40 if spec.kind != "off" else 0)
-        self.setBrush(QBrush(fill))
+        self.color = QColor({"auto": style.AUTO, "manual": style.MANUAL}.get(spec.kind, style.OFF))
+        self.setPen(Qt.PenStyle.NoPen)
         self.setZValue(2 if spec.editable else 1)
 
     def _handle(self) -> float:
@@ -112,12 +106,31 @@ class BoxItem(QGraphicsRectItem):
         self.canvas.box_changed.emit(self.spec.key, self.canvas.to_box(self.rect()))
 
     def paint(self, painter: QPainter, option, widget=None) -> None:
-        super().paint(painter, option, widget)
+        """Reticle style: hairline frame, firm corner brackets."""
+        r = self.rect()
+        off = self.spec.kind == "off"
+        fill = QColor(self.color)
+        fill.setAlpha(0 if off else 22)
+        frame = QColor(self.color)
+        frame.setAlpha(255 if self.isSelected() else 150)
+        pen = QPen(frame, 1, Qt.PenStyle.DashLine if off else Qt.PenStyle.SolidLine)
+        pen.setCosmetic(True)
+        painter.setPen(pen)
+        painter.setBrush(QBrush(fill))
+        painter.drawRect(r)
+        if not off:
+            px = max(1e-6, self.canvas.transform().m11())
+            n = min(r.width(), r.height()) * 0.28
+            n = max(9 / px, min(n, 26 / px))
+            pen = QPen(self.color, 3)
+            pen.setCosmetic(True)
+            pen.setCapStyle(Qt.PenCapStyle.SquareCap)
+            painter.setPen(pen)
+            corner_ticks(painter, r, n)
         if self.isSelected():
             h = self._handle() * 0.6
             painter.setBrush(QColor(style.TEXT))
             painter.setPen(Qt.PenStyle.NoPen)
-            r = self.rect()
             for pt in (r.topLeft(), r.topRight(), r.bottomLeft(), r.bottomRight()):
                 painter.drawRect(QRectF(pt.x() - h / 2, pt.y() - h / 2, h, h))
 

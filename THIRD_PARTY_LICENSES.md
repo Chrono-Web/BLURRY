@@ -7,7 +7,7 @@ Full licence texts are in [`licenses/`](licenses/).
 
 | Distribution | Contains |
 |---|---|
-| **Python package on PyPI** (`blurry-opsec`) | Blurry's code (MIT), the YuNet model (MIT) and the Geist SemiBold font (SIL OFL 1.1). Its dependencies are not included: pip installs them from PyPI, each under its own licence. |
+| **Python package on PyPI** (`blurry-opsec`) | Blurry's code (MIT), the YuNet model (MIT) and the Geist SemiBold and Geist Mono fonts (SIL OFL 1.1). Its dependencies are not included: pip installs them from PyPI, each under its own licence. |
 | **Ready-made apps** (`.dmg`, Windows ZIP, AppImage, from v1.0) | All of the above **plus** the libraries listed below, including **x264 and x265, which are GPL-2.0-or-later**. Those parts are distributed under the GPL, with the source links given here. |
 
 ## Bundled with Blurry itself
@@ -15,7 +15,7 @@ Full licence texts are in [`licenses/`](licenses/).
 | Component | Licence | Text | Source |
 |---|---|---|---|
 | YuNet face detector, `face_detection_yunet_2023mar.onnx` (Shiqi Yu, OpenCV Zoo) | MIT | [YuNet-MIT.txt](licenses/YuNet-MIT.txt) | <https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet> |
-| Geist SemiBold font (watermark only) | SIL OFL 1.1 | [Geist-OFL-1.1.txt](licenses/Geist-OFL-1.1.txt) | <https://github.com/vercel/geist-font> |
+| Geist SemiBold (watermark) and Geist Mono Medium (app labels) fonts | SIL OFL 1.1 | [Geist-OFL-1.1.txt](licenses/Geist-OFL-1.1.txt) | <https://github.com/vercel/geist-font> |
 
 ## Python dependencies
 

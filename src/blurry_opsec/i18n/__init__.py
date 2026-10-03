@@ -65,8 +65,12 @@ STRINGS: dict[str, dict[str, str]] = {
     "keep_audio": {"it": "Mantieni l'audio dei video", "en": "Keep video audio"},
     "audio_warning": {"it": "le voci possono identificare", "en": "voices can identify people"},
     "destination": {"it": "Dove salvare", "en": "Save to"},
-    "dest_next": {"it": "Accanto all'originale", "en": "Next to the original"},
-    "dest_folder": {"it": "In una cartella…", "en": "In a folder…"},
+    "dest_next": {"it": "Accanto", "en": "Same folder"},
+    "dest_folder": {"it": "Altra cartella…", "en": "Other folder…"},
+    "dest_next_tip": {
+        "it": "Salva accanto all'originale, con «.blurry» nel nome.",
+        "en": "Saves next to the original, with “.blurry” in the name.",
+    },
     "dest_choose": {"it": "Scegli la cartella", "en": "Choose the folder"},
     "always_removed": {
         "it": "Sempre tolti: posizione GPS, dispositivo, date, miniature, profili colore, "
