@@ -26,3 +26,11 @@ def test_engine_dependencies_import_together():
 
     assert hasattr(cv2, "FaceDetectorYN")
     assert "libx264" in av.codecs_available
+
+
+def test_version_matches_pyproject():
+    import tomllib
+    from pathlib import Path
+
+    meta = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())
+    assert meta["project"]["version"] == __version__

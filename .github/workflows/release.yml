@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.22"
+          enable-cache: false
+      - name: Tag matches the package version
+        run: test "v$(uv version --short)" = "${GITHUB_REF_NAME}"
+      - name: Build wheel and sdist
+        run: uv build --no-sources
+      - name: SBOM (CycloneDX)
+        run: uv export --frozen --no-dev --format cyclonedx1.5 -o "dist/blurry-opsec-${GITHUB_REF_NAME#v}.cdx.json"
+      - name: Smoke test the wheel, offline
+        run: |
+          uv venv --python 3.12 /tmp/smoke
+          uv pip install --python /tmp/smoke dist/*.whl
+          /tmp/smoke/bin/blurry --version
+          mkdir /tmp/smoke-out
+          /tmp/smoke/bin/blurry tests/fixtures/public/dental_squadron.jpg -o /tmp/smoke-out --strict
+          test -f /tmp/smoke-out/dental_squadron.blurry.jpg
+      - name: Checksums
+        run: cd dist && sha256sum -- * > SHA256SUMS && cat SHA256SUMS
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  pypi:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: pypi
+      url: https://pypi.org/project/blurry-opsec/
+    permissions:
+      id-token: write # Trusted Publishing, no tokens
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist/
+      - name: Keep only the Python distributions
+        run: mkdir pypi && mv dist/*.whl dist/*.tar.gz pypi/
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: pypi/
+
+  github-release:
+    needs: pypi
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist/
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "${GITHUB_REF_NAME}" dist/*
+          --repo "${GITHUB_REPOSITORY}"
+          --title "Blurry ${GITHUB_REF_NAME}"
+          --notes "See CHANGELOG.md. Verify downloads with SHA256SUMS and
+          gh attestation verify <file> --repo ${GITHUB_REPOSITORY}."

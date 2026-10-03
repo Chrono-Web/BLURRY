@@ -1,6 +1,6 @@
 [project]
 name = "blurry-opsec"
-version = "0.0.0"
+version = "0.1.0"
 description = "Cover faces and strip metadata from photos and videos, locally and offline."
 readme = "README.md"
 license = "MIT"
@@ -40,6 +40,10 @@ dev = ["pytest>=8", "ruff>=0.6"]
 [build-system]
 requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+include = ["src/blurry_opsec", "LICENSE", "THIRD_PARTY_LICENSES.md", "licenses", "README.md",
+           "README.it.md", "THREAT_MODEL.md", "THREAT_MODEL.it.md", "CHANGELOG.md"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/blurry_opsec"]
