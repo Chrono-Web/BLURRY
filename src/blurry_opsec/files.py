@@ -26,8 +26,12 @@ def check_regular_file(path: Path, max_bytes: int) -> os.stat_result:
         raise InputError("URLs are not accepted: Blurry only reads local files")
     try:
         st = os.stat(path)
+    except FileNotFoundError as exc:
+        raise InputError("file not found (check the name and the folder)") from exc
+    except PermissionError as exc:
+        raise InputError("permission denied: the file cannot be read") from exc
     except OSError as exc:
-        raise InputError("file not found or not readable") from exc
+        raise InputError("the file cannot be read") from exc
     if not stat.S_ISREG(st.st_mode):
         raise InputError("not a regular file")
     if st.st_size == 0:
