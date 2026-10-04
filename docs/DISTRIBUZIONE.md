@@ -1,6 +1,7 @@
 # Distribuzione desktop e verifiche
 
-Aggiornato: 2026-10-04. La richiesta estende i pacchetti pronti oltre macOS.
+Aggiornato: 2026-10-04. Versione sorgente preparata: **0.1.2**, non pubblicata.
+La richiesta estende i pacchetti pronti oltre macOS.
 Python rimane pienamente supportato: vedi [contratto CLI](CLI_CONTRACT.md).
 
 ## Formati scelti
@@ -127,6 +128,8 @@ Qt Mac di prova. Non sono stati pubblicati su una release o su PyPI.
 
 Gli artefatti locali non hanno attestazioni GitHub: queste vengono generate solo
 nel workflow remoto. I checksum locali sono in `build/python-dist/SHA256SUMS`.
-Prima del prossimo rilascio aggiornare coerentemente la versione in pyproject,
-`blurry_opsec.__version__` e il lock, poi creare un nuovo tag: i tag esistenti non
-includono le modifiche non pubblicate di questa sessione.
+La versione 0.1.2 è allineata in pyproject, `blurry_opsec.__version__`, lock e
+Info.plist macOS. La release pubblica corrente resta 0.1.1; i suoi tag e pacchetti
+non includono le modifiche di questo ramo. Non rinominare i vecchi artefatti 0.1.1:
+per 0.1.2 servono nuovi build. La verifica del DMG è obbligatoria anche nel workflow
+di release. Vedi [prove desktop da completare](VERIFICA_DESKTOP.md).

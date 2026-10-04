@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.1.2] — non pubblicata (preparata il 2026-10-04)
 
 - Add Qt onboarding, replayable guide, settings, manual updates and uninstall controls.
 - Prepare per-user Windows x64 and Ubuntu 24.04 x86-64 native installer builds,
