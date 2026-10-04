@@ -82,12 +82,12 @@ Letti, senza modifiche, il 2026-10-04:
 - FRONTEND `src/services/mediaProcessingService.js`: chiamate al backend, polling
   del job e mapping di `X-OPSEC-*`/payload HTTP, nessuna esecuzione Python nel browser.
 
-Blurry non è un sostituto a riga di comando del vecchio script: il futuro adattatore
-backend dovrà mappare `off` a `--no-faces`, passare gli altri livelli esplicitamente,
-leggere il nome di output dal report, tradurre i campi del risultato e mantenere il
-contratto HTTP attuale. La pixelazione per blocchi non equivale a `--mode pixel`;
+Blurry non è un sostituto a riga di comando del vecchio script. L’adattatore
+Chrono implementato nel backend mappa `off` a `--no-faces`, passa gli altri livelli esplicitamente,
+legge il nome di output dal report, traduce i campi del risultato e mantiene il
+contratto HTTP attuale. Chrono usa esplicitamente `--mode pixel` per foto e video. La pixelazione per blocchi non equivale a `--mode pixel`;
 non ignorare opzioni non supportate. Default differenti: Blurry usa high/solid e
-rimuove l’audio, Chrono usa scelte per job. Non applicare fallback a un rilevatore diverso.
+rimuove l’audio, Chrono usa pixel, livelli per job e conserva l’audio video. Non applicare fallback a un rilevatore diverso.
 
 `examples/backend-process.mjs` dimostra una singola chiamata senza shell, con stdin
 chiuso, buffer limitati, timeout e annullamento. È una libreria di esempio in questa
