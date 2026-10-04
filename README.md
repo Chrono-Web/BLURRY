@@ -10,8 +10,8 @@ runs entirely offline. It has no server, no account, no telemetry and no update 
 refuses to open network connections even if something tries.
 
 > Blurry is a **desktop app** (drag in your photos and videos, check the boxes, export) and a
-> **command-line tool** for scripts. Ready-made installers for macOS, Windows and Linux come with
-> version 1.0; until then, install it with Python as shown below.
+> **command-line tool** for scripts. On a Mac it is a native app you download as `Blurry.dmg`;
+> on Windows and Linux the app and the command line install with Python, as shown below.
 
 ## What it does
 
@@ -42,6 +42,19 @@ under `flags` in the `--json` report.
 
 ## Install
 
+### Mac
+
+Apple Silicon (M1 or later), macOS 14 or later.
+
+1. Download [`Blurry.dmg`](https://github.com/Chrono-Web/BLURRY/releases/latest/download/Blurry.dmg)
+   from the [Releases](https://github.com/Chrono-Web/BLURRY/releases) page.
+2. Open it and drag Blurry onto the Applications folder.
+3. The first time, macOS warns that it cannot verify the developer: Blurry is not signed by Apple.
+   Open System Settings › Privacy & Security, scroll down and click **Open Anyway** next to
+   Blurry. You only do this once.
+
+### With Python (Windows, Linux, command line)
+
 You need Python 3.12. The simplest way is [pipx](https://pipx.pypa.io/) (or `uv tool`). With the
 desktop app:
 
@@ -55,11 +68,24 @@ Command line only:
 pipx install blurry-opsec
 ```
 
-Ready-made apps for macOS, Windows and Linux come with v1.0.
-
 ## The app
 
-Run `blurry` with no arguments (or `blurry-app`) to open it.
+**On a Mac** (`Blurry.dmg`):
+
+1. **Drop** photos and videos on the window, or use *Choose Files…* (⌘O).
+2. A **guide** takes one file at a time: the file in the middle, and below it one choice at a
+   time (sensitivity, cover, margin, and the sound for videos). From the cover step on, the
+   picture shows exactly what will be exported; on a video you can play the covered result.
+3. **Correct the boxes** by hand if needed: draw, move, resize or remove boxes on photos; in
+   videos switch off a track that is not a face, or draw a still box over a span of time.
+4. **Export…** opens the save panel on the original's folder, with `<name>_blurry`. The original
+   is never touched. If no face was found, Blurry asks first.
+
+Every file of the session is in View › Queue (⌘L). A short guide accompanies the first file
+(Help › Show the Guide Again).
+
+**On Windows and Linux**, run `blurry` with no arguments (or `blurry-app`) to open the app
+installed with Python:
 
 1. **Drop** photos and videos on the window, or use *Choose files…*. Each file is analysed in a
    separate process; nothing leaves your computer.
@@ -70,9 +96,10 @@ Run `blurry` with no arguments (or `blurry-app`) to open it.
    not a face, or draw a box that covers an area for a span of time.
 3. **Export.** If a file has no face and you added none, Blurry asks before exporting it.
 
-The app remembers only four settings (sensitivity, cover, margin, language): never file names,
-folders or recent files. It uses its own file picker, because the system's and Qt's dialogs keep
-a list of recent folders.
+Both apps remember only a few settings (sensitivity, cover, margin, language, and on the Mac
+whether the guide was seen): never file names, folders or recent files. The Qt app uses its own
+file picker, because Qt's dialogs keep a list of recent folders; the Mac app uses the system's
+panels and removes what they record as soon as they close.
 
 ## Use
 
@@ -152,6 +179,7 @@ PyPI shows its provenance on the project page.
 ## Licence
 
 Blurry is MIT-licensed. The PyPI package contains only Blurry's code, the YuNet model (MIT) and the
-Geist font (OFL). The ready-made apps (from v1.0) also contain FFmpeg with **x264 and x265, which
-are GPL-2.0-or-later**: see [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for every licence
+Geist font (OFL). The Mac app (`Blurry.dmg`) also contains FFmpeg with **x264 and x265, which
+are GPL-2.0-or-later**, and the PyInstaller bootloader (GPL-2.0 with an exception for the
+programs it runs): see [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for every licence
 and the exact sources.

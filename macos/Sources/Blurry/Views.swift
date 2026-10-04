@@ -120,6 +120,12 @@ struct ContentView: View {
                 .font(.title3.weight(.medium))
             Button(L.chooseFiles) { choosing = true }
                 .controlSize(.large)
+            if !store.onboarded {
+                Text(L.welcomeLine)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 4)
+            }
             if store.engineMissing {
                 Text(L.engineMissing).font(.caption).foregroundStyle(.orange)
             }

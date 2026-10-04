@@ -8,7 +8,7 @@ Full licence texts are in [`licenses/`](licenses/).
 | Distribution | Contains |
 |---|---|
 | **Python package on PyPI** (`blurry-opsec`) | Blurry's code (MIT), the YuNet model (MIT) and the Geist SemiBold and Geist Mono fonts (SIL OFL 1.1). Its dependencies are not included: pip installs them from PyPI, each under its own licence. |
-| **Ready-made apps** (`.dmg`, Windows ZIP, AppImage, from v1.0) | All of the above **plus** the libraries listed below, including **x264 and x265, which are GPL-2.0-or-later**. Those parts are distributed under the GPL, with the source links given here. |
+| **Mac app** (`Blurry.dmg`) | All of the above **plus** the Python dependencies listed below (not PySide6/Qt: the Mac interface is SwiftUI), including **x264 and x265, which are GPL-2.0-or-later**, and the PyInstaller bootloader that starts the bundled engine. Those parts are distributed under their licences, with the source links given here. |
 
 ## Bundled with Blurry itself
 
@@ -26,7 +26,8 @@ Full licence texts are in [`licenses/`](licenses/).
 | Pillow | MIT-CMU (and bundled library licences) | [Pillow-MIT-CMU.txt](licenses/Pillow-MIT-CMU.txt) |
 | pi-heif | BSD-3-Clause; its wheels bundle **libheif** and **libde265** (LGPL-3.0), decoders only | [pi-heif-BSD-3-Clause.txt](licenses/pi-heif-BSD-3-Clause.txt), [LGPL-3.0.txt](licenses/LGPL-3.0.txt), [GPL-3.0.txt](licenses/GPL-3.0.txt) |
 | PyAV (`av`) | BSD-3-Clause; its wheels bundle **FFmpeg** (LGPL-3.0-or-later), **x264** and **x265** (**GPL-2.0-or-later**) | [PyAV-BSD-3-Clause.txt](licenses/PyAV-BSD-3-Clause.txt), [LGPL-3.0.txt](licenses/LGPL-3.0.txt), [GPL-2.0.txt](licenses/GPL-2.0.txt) |
-| PySide6-Essentials / Qt 6 (desktop app only) | LGPL-3.0 | [LGPL-3.0.txt](licenses/LGPL-3.0.txt), [GPL-3.0.txt](licenses/GPL-3.0.txt) |
+| PySide6-Essentials / Qt 6 (the Qt app for Windows and Linux only; not in the Mac `.dmg`) | LGPL-3.0 | [LGPL-3.0.txt](licenses/LGPL-3.0.txt), [GPL-3.0.txt](licenses/GPL-3.0.txt) |
+| PyInstaller bootloader (Mac app only: it starts the frozen engine) | GPL-2.0-or-later with the PyInstaller bootloader exception, which allows bundling programs under any licence | [GPL-2.0.txt](licenses/GPL-2.0.txt); exception text: <https://github.com/pyinstaller/pyinstaller/blob/develop/COPYING.txt> |
 
 ## Exact sources of the copyleft libraries
 

@@ -116,6 +116,37 @@ final class Store {
     }
     var keepAudio = false { didSet { settingsChanged() } }
 
+    // First-run guide: a few tips during the first file, ending on the queue.
+    // Only a boolean is kept ("onboarded", allowed by R2).
+    enum Tip { case steps, correct, queue }
+    var onboarded: Bool { didSet { defaults.set(onboarded, forKey: "onboarded") } }
+    var tipStage = 0   // 0 steps, 1 correct, 2 waiting for the first export, then queue
+
+    /// The tip to show now, if any.
+    var tip: Tip? {
+        guard !onboarded, let item = current, !editing else { return nil }
+        if item.status == .exported { return .queue }
+        switch tipStage {
+        case 0: return .steps
+        case 1: return item.analysed ? .correct : nil
+        default: return nil
+        }
+    }
+
+    func nextTip() { tipStage += 1 }
+
+    func finishOnboarding() {
+        onboarded = true
+        tipStage = 0
+    }
+
+    /// Help ▸ Show the Guide Again.
+    func restartOnboarding() {
+        onboarded = false
+        tipStage = 0
+        defaults.removeObject(forKey: "onboarded")
+    }
+
     @ObservationIgnored private var skipped: Set<UUID> = []
     @ObservationIgnored private var confirmedOnce = false   // a file has been exported this session
     @ObservationIgnored private var playToken = 0
@@ -131,6 +162,7 @@ final class Store {
         let p = (defaults.object(forKey: "padding") as? NSNumber)?.doubleValue
             ?? Double(defaults.string(forKey: "padding") ?? "") ?? 0.25
         padding = (0...1).contains(p) ? p : 0.25
+        onboarded = defaults.bool(forKey: "onboarded")
         jobs.onCrash = { [weak self] in self?.notice = L.workerCrashed }
         view.onCrash = { [weak self] in self?.previewInFlight = false; self?.playing = false }
     }
@@ -652,13 +684,14 @@ final class Store {
     }
 }
 
-/// R2: the app's defaults hold only the four allowed preferences. AppKit adds
-/// its own: the open and save panels' last folder and recent places (NSNav*,
+/// R2: the app's defaults hold only the allowed preferences (four settings and
+/// the onboarding flag). AppKit adds its own: the open and save panels' last folder and recent places (NSNav*,
 /// NSOSP*, written after the panel has returned) and window frames. Every
 /// other key is removed at launch, when a panel closes (again shortly after)
 /// and at quit.
 enum Privacy {
-    static let allowedKeys: Set<String> = ["level", "mode", "padding", "language"]
+    /// The same list as ALLOWED_KEYS in src/blurry_opsec/gui/prefs.py.
+    static let allowedKeys: Set<String> = ["level", "mode", "padding", "language", "onboarded"]
 
     static func scrub() {
         let defaults = UserDefaults.standard

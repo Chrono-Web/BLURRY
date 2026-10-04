@@ -64,3 +64,12 @@ jobs:
           persist-credentials: false
       - run: docker build -f .github/ci/offline.Dockerfile -t blurry-offline .
       - run: docker run --rm --network none blurry-offline
+
+  macos-app:
+    name: app macOS (swift build)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: swift build --package-path macos -c release --arch arm64

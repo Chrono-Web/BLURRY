@@ -1,0 +1,27 @@
+BLURRY — installare e disinstallare
+
+Blurry copre i volti e toglie i metadati da foto e video, tutto su questo Mac.
+Non si collega mai a internet: niente account, niente caricamenti, niente
+aggiornamenti automatici.
+
+INSTALLARE
+1. Trascina l'icona di Blurry sulla cartella «Applicazioni» qui accanto.
+2. Apri la cartella Applicazioni e fai doppio clic su Blurry.
+3. La prima volta il Mac avvisa che non può verificare lo sviluppatore: Blurry
+   non è firmato da Apple. Apri Impostazioni di Sistema › Privacy e sicurezza,
+   scorri in fondo e premi «Apri comunque» accanto a Blurry. Serve una volta sola.
+4. Trascina una foto o un video nella finestra di Blurry.
+
+Poi espelli il disco «Blurry» e butta il file .dmg nel Cestino.
+
+AGGIORNARE
+Blurry non cerca aggiornamenti da solo. Le nuove versioni sono su
+https://github.com/Chrono-Web/BLURRY/releases (in Blurry: Aiuto › Aggiornamenti
+di Blurry). Chiudi Blurry, ripeti il punto 1 e scegli «Sostituisci».
+
+DISINSTALLARE
+Trascina Blurry da Applicazioni al Cestino. Basta questo.
+Blurry non tiene dati: nessun file, nessuna cronologia, nessun percorso. Le sole
+preferenze sono il livello di sensibilità, il tipo di copertura, il margine e il
+segno di «guida già vista»; stanno nel file
+~/Library/Preferences/com.chronocol.blurry.plist, che puoi buttare nel Cestino.

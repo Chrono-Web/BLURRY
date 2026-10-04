@@ -1,6 +1,9 @@
 """Preferences: level, mode, padding and language. Nothing else, ever.
 
-No paths, no recent files, no output folder, no window geometry (R2).
+No paths, no recent files, no output folder, no window geometry (R2). The
+macOS app shares this store (com.chronocol.blurry) and adds one more key,
+"onboarded" (a boolean: the first-run guide was seen), which is kept here too
+so that this app does not delete it.
 """
 
 from __future__ import annotations
@@ -13,7 +16,7 @@ from blurry_opsec import i18n, levels
 
 ORG_DOMAIN = "chronocol.com"
 APP_NAME = "blurry"  # -> com.chronocol.blurry on macOS
-ALLOWED_KEYS = ("level", "mode", "padding", "language")
+ALLOWED_KEYS = ("level", "mode", "padding", "language", "onboarded")
 
 
 def _settings() -> QSettings:

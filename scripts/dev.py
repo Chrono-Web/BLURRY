@@ -47,12 +47,16 @@ def build_mac() -> bool:
         return False
     binary = subprocess.run(  # noqa: S603
         ["swift", "build", "--package-path", str(MACOS), "--show-bin-path"],  # noqa: S607
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
     # A minimal bundle, so the app has its identity (com.chronocol.blurry) and a Dock icon.
     contents = APP / "Contents"
     (contents / "MacOS").mkdir(parents=True, exist_ok=True)
     shutil.copy2(MACOS / "Info.plist", contents / "Info.plist")
+    (contents / "Resources").mkdir(exist_ok=True)
+    shutil.copy2(MACOS / "Blurry.icns", contents / "Resources" / "Blurry.icns")
     shutil.copy2(Path(binary) / "Blurry", contents / "MacOS" / "Blurry")
     return True
 
@@ -107,8 +111,11 @@ def main() -> int:
                 reported = True
             elif proc is not None and proc.poll() not in (None, 0) and not reported:
                 # Crashed: wait for the next save instead of looping.
-                print(f"[dev] l'app è uscita con codice {proc.returncode}; "
-                      "attendo la prossima modifica", flush=True)
+                print(
+                    f"[dev] l'app è uscita con codice {proc.returncode}; "
+                    "attendo la prossima modifica",
+                    flush=True,
+                )
                 reported = True
     except KeyboardInterrupt:
         pass

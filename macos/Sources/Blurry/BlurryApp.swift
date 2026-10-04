@@ -26,8 +26,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct BlurryApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
-    @State private var store = Store()
+    @State private var store: Store
     @State private var choosing = false
+
+    init() {
+        // The app is never an engine. If something ever starts it as one, stop
+        // here, before anything else (the engine included) can start.
+        if CommandLine.arguments.contains("__worker") { exit(2) }
+        #if DEBUG
+        IconRenderer.runIfAsked()   // renders and quits before the engine starts
+        #endif
+        _store = State(initialValue: Store())
+    }
 
     var body: some Scene {
         Window("Blurry", id: "main") {
@@ -53,6 +63,8 @@ struct BlurryApp: App {
                     .keyboardShortcut("o")
             }
             CommandGroup(replacing: .help) {
+                Button(L.restartGuide) { store.restartOnboarding() }
+                Divider()
                 Button(L.updates) { NSWorkspace.shared.open(releasesURL) }
             }
         }

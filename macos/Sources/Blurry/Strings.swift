@@ -157,6 +157,28 @@ enum L {
         italian ? (n == 1 ? "1 volto" : "\(n) volti") : (n == 1 ? "1 face" : "\(n) faces")
     }
 
+    // First-run guide
+    static var welcomeLine: String {
+        t("Tutto resta su questo Mac: niente rete, niente caricamenti.",
+          "Everything stays on this Mac: no network, no uploads.")
+    }
+    static var tipSteps: String {
+        t("Una scelta alla volta. L'immagine mostra subito il risultato: puoi tornare a ogni passo cliccandolo qui.",
+          "One choice at a time. The picture shows the result right away: click a step here to go back to it.")
+    }
+    static var tipCorrect: String {
+        t("Se manca un volto, aggiungilo qui. Se un riquadro non è un volto, toglilo.",
+          "If a face is missing, add it here. If a box is not a face, remove it.")
+    }
+    static var tipQueue: String {
+        t("Ecco il tuo file: l'originale non viene mai toccato. Tutti i file di questa sessione sono nella Coda (Vista ▸ Coda, ⌘L).",
+          "Here is your file: the original is never touched. Every file of this session is in the Queue (View ▸ Queue, ⌘L).")
+    }
+    static var tipNext: String { t("Avanti", "Next") }
+    static var tipSkip: String { t("Salta la guida", "Skip the guide") }
+    static var openQueue: String { t("Apri la coda", "Open the Queue") }
+    static var restartGuide: String { t("Rivedi la guida", "Show the Guide Again") }
+
     // Menu
     static var updates: String { t("Aggiornamenti di Blurry", "Blurry Updates") }
 }

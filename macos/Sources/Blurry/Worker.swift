@@ -19,6 +19,8 @@ final class Worker {
     private var handlers: [Int: (Event) -> Void] = [:]
     private var nextID = 1
     private var quitting = false
+    private var restarts = 0
+    private static let maxRestarts = 3
 
     /// Set when the engine cannot be started at all.
     private(set) var unavailable = false
@@ -29,15 +31,29 @@ final class Worker {
     init() { start() }
 
     /// In development BLURRY_PYTHON points at the project's interpreter; the
-    /// packaged app carries the engine as an auxiliary executable.
+    /// packaged app carries the frozen engine in Resources/engine/blurry.
+    ///
+    /// Never look the engine up by name next to the app's own executable: the
+    /// disk is case-insensitive, so "blurry" would find "Blurry", the app would
+    /// start copies of itself as its engine and each copy two more (this
+    /// happened on 2026-10-04 and exhausted the Mac's processes).
     private static func command() -> (URL, [String])? {
         if let python = ProcessInfo.processInfo.environment["BLURRY_PYTHON"] {
             return (URL(fileURLWithPath: python), ["-m", "blurry_opsec", "__worker"])
         }
-        if let exe = Bundle.main.url(forAuxiliaryExecutable: "blurry") {
-            return (exe, ["__worker"])
-        }
-        return nil
+        guard let engine = Bundle.main.resourceURL?.appendingPathComponent("engine/blurry"),
+              FileManager.default.isExecutableFile(atPath: engine.path),
+              !isSelf(engine) else { return nil }
+        return (engine, ["__worker"])
+    }
+
+    private static func isSelf(_ url: URL) -> Bool {
+        guard let me = Bundle.main.executableURL else { return true }
+        let key: Set<URLResourceKey> = [.fileResourceIdentifierKey]
+        let a = try? url.resolvingSymlinksInPath().resourceValues(forKeys: key).fileResourceIdentifier
+        let b = try? me.resolvingSymlinksInPath().resourceValues(forKeys: key).fileResourceIdentifier
+        guard let a, let b else { return true }
+        return a.isEqual(b)
     }
 
     private func start() {
@@ -69,6 +85,10 @@ final class Worker {
         process = proc
         input = stdin.fileHandleForWriting
         buffer = Data()
+        // A healthy start resets the count after a while.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in
+            MainActor.assumeIsolated { if self?.process === proc { self?.restarts = 0 } }
+        }
     }
 
     @discardableResult
@@ -143,6 +163,14 @@ final class Worker {
         handlers = [:]
         for handler in pending.values { handler(.error("worker")) }
         onCrash?()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { MainActor.assumeIsolated { self.start() } }
+        // Restart a few times, waiting longer each time; then give up and say so,
+        // instead of starting processes forever.
+        guard restarts < Self.maxRestarts else {
+            unavailable = true
+            return
+        }
+        restarts += 1
+        let delay = pow(2.0, Double(restarts - 1))
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { MainActor.assumeIsolated { self.start() } }
     }
 }

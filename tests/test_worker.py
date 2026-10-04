@@ -138,7 +138,7 @@ def test_preview_covers_like_the_export_and_outlines(worker):
     img = _decode(res["preview"])
     s = 800 / max(plan["width"], plan["height"])
     cx, cy = int((box["x"] + box["w"] / 2) * s), int((box["y"] + box["h"] / 2) * s)
-    assert max(img.shape[:2]) == 800 and img[cy - 3:cy + 3, cx - 3:cx + 3].max() < 20
+    assert max(img.shape[:2]) == 800 and img[cy - 3 : cy + 3, cx - 3 : cx + 3].max() < 20
     res = worker.call("preview", path=src, plan=plan, settings=settings, max_side=800,
                       outline=True)  # fmt: skip
     assert _decode(res["preview"])[cy, cx].max() > 20  # outlined, not covered

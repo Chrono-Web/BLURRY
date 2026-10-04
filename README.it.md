@@ -10,8 +10,8 @@ miniatura nascosta dell'originale. Funziona tutto senza rete: niente server, acc
 controllo degli aggiornamenti, e rifiuta di aprire connessioni anche se qualcosa ci prova.
 
 > Blurry è un'**app** (trascini foto e video, controlli i riquadri, esporti) e un **comando da
-> terminale** per gli script. Gli installer pronti per macOS, Windows e Linux arrivano con la
-> versione 1.0; fino ad allora si installa con Python, come spiegato sotto.
+> terminale** per gli script. Su Mac è un'app nativa che si scarica come `Blurry.dmg`; su Windows
+> e Linux l'app e il comando si installano con Python, come spiegato sotto.
 
 ## Che cosa fa
 
@@ -42,6 +42,19 @@ sotto `flags` nel resoconto `--json`.
 
 ## Installazione
 
+### Mac
+
+Apple Silicon (M1 o successivi), macOS 14 o successivo.
+
+1. Scarica [`Blurry.dmg`](https://github.com/Chrono-Web/BLURRY/releases/latest/download/Blurry.dmg)
+   dalla pagina delle [Release](https://github.com/Chrono-Web/BLURRY/releases).
+2. Aprilo e trascina Blurry sulla cartella Applicazioni.
+3. La prima volta macOS avvisa che non può verificare lo sviluppatore: Blurry non è firmato da
+   Apple. Apri Impostazioni di Sistema › Privacy e sicurezza, scorri in fondo e premi **Apri
+   comunque** accanto a Blurry. Serve una volta sola.
+
+### Con Python (Windows, Linux, comando da terminale)
+
 Serve Python 3.12. Il modo più semplice è [pipx](https://pipx.pypa.io/) (oppure `uv tool`). Con
 l'app:
 
@@ -55,11 +68,25 @@ Solo il comando da terminale:
 pipx install blurry-opsec
 ```
 
-Le app pronte per macOS, Windows e Linux arrivano con la v1.0.
-
 ## L'app
 
-Lancia `blurry` senza argomenti (oppure `blurry-app`) per aprirla.
+**Su Mac** (`Blurry.dmg`):
+
+1. **Trascina** foto e video nella finestra, oppure usa *Scegli file…* (⌘O).
+2. Una **guida** prende un file alla volta: il file al centro e sotto una scelta alla volta
+   (sensibilità, copertura, margine e, per i video, l'audio). Dalla copertura in poi l'immagine
+   mostra esattamente quello che verrà esportato; in un video puoi riprodurre il risultato coperto.
+3. **Correggi i riquadri** a mano se serve: nelle foto disegna, sposta, ridimensiona o togli i
+   riquadri; nei video spegni una traccia che non è un volto, o disegna un riquadro fermo su un
+   intervallo di tempo.
+4. **Esporta…** apre il pannello di salvataggio sulla cartella dell'originale, con
+   `<nome>_blurry`. L'originale non viene mai toccato. Se non ha trovato volti, Blurry chiede prima.
+
+Tutti i file della sessione sono in Vista › Coda (⌘L). Una breve guida accompagna il primo file
+(Aiuto › Rivedi la guida).
+
+**Su Windows e Linux**, lancia `blurry` senza argomenti (oppure `blurry-app`) per aprire l'app
+installata con Python:
 
 1. **Trascina** foto e video nella finestra, oppure usa *Scegli file…*. Ogni file si analizza in
    un processo separato; niente esce dal tuo computer.
@@ -71,9 +98,10 @@ Lancia `blurry` senza argomenti (oppure `blurry-app`) per aprirla.
    traccia che non è un volto, o disegna un riquadro che copre un'area per un intervallo di tempo.
 3. **Esporta.** Se in un file non c'è nessun volto e non ne hai aggiunti, Blurry chiede conferma.
 
-L'app ricorda solo quattro impostazioni (sensibilità, copertura, margine, lingua): mai nomi di
-file, cartelle o file recenti. Usa un suo selettore di file, perché i dialoghi del sistema e di Qt
-tengono un elenco delle cartelle recenti.
+Le due app ricordano solo poche impostazioni (sensibilità, copertura, margine, lingua e, su Mac,
+se la guida è già stata vista): mai nomi di file, cartelle o file recenti. L'app Qt usa un suo
+selettore di file, perché i dialoghi di Qt tengono un elenco delle cartelle recenti; l'app per Mac
+usa i pannelli del sistema e toglie quello che registrano appena si chiudono.
 
 ## Uso
 
@@ -154,6 +182,7 @@ ne mostra la provenienza nella pagina del progetto.
 ## Licenza
 
 Blurry ha licenza MIT. Il pacchetto su PyPI contiene solo il codice di Blurry, il modello YuNet
-(MIT) e il font Geist (OFL). Le app pronte (dalla v1.0) contengono anche FFmpeg con **x264 e x265,
-che sono GPL-2.0-or-later**: in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) trovi tutte le
+(MIT) e il font Geist (OFL). L'app per Mac (`Blurry.dmg`) contiene anche FFmpeg con **x264 e x265,
+che sono GPL-2.0-or-later**, e il bootloader di PyInstaller (GPL-2.0 con un'eccezione per i
+programmi che avvia): in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) trovi tutte le
 licenze e i sorgenti esatti.

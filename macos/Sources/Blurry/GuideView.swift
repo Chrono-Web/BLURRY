@@ -8,6 +8,7 @@ import SwiftUI
 /// step bar can be clicked; the steps are fixed from the start.
 struct GuideView: View {
     @Environment(Store.self) private var store
+    @Environment(\.openWindow) private var openWindow
     let targeted: Bool
     @State private var confirmNoFaces = false
 
@@ -25,6 +26,7 @@ struct GuideView: View {
                         .frame(height: item.kind == .video ? 216 : 188, alignment: .bottom)
                 } else {
                     StepBar(locked: item.status == .exporting)
+                        .guideTip(.steps, L.tipSteps, arrowEdge: .top)
                         .padding(.bottom, 16)
                     stepContent(item)
                         .frame(height: 124)
@@ -183,6 +185,10 @@ struct GuideView: View {
                     .foregroundStyle(accent)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                    .guideTip(.queue, L.tipQueue, arrowEdge: .top, actionTitle: L.openQueue) {
+                        openWindow(id: "queue")
+                        store.finishOnboarding()
+                    }
                 Button(L.showInFinder) { NSWorkspace.shared.activateFileViewerSelecting([output]) }
                     .buttonStyle(.borderless)
             }
@@ -275,6 +281,7 @@ struct FloatingPicture: View {
         }
         .animation(.easeOut(duration: 0.2), value: store.step)
         .animation(.easeOut(duration: 0.15), value: store.previewStale)
+        .animation(.easeOut(duration: 0.2), value: store.tip)
     }
 
     private var planSize: CGSize? {
@@ -298,6 +305,7 @@ struct FloatingPicture: View {
             }
             .buttonStyle(.plain)
             .keyboardShortcut("e", modifiers: .command)
+            .guideTip(.correct, L.tipCorrect, arrowEdge: .bottom)
         }
     }
 

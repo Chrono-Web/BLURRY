@@ -39,6 +39,9 @@ Releases = "https://github.com/Chrono-Web/BLURRY/releases"
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.6"]
+packaging = [
+    "pyinstaller>=6.10",
+]
 
 [build-system]
 requires = ["hatchling>=1.26"]
