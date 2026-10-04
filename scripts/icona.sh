@@ -1,7 +1,7 @@
 #!/bin/zsh
-# Rigenera macos/Blurry.icns dall'icona disegnata in codice (AppIconArt in
-# macos/Sources/Blurry/AppIcon.swift). Si lancia solo quando il disegno cambia;
-# il .icns è committato.
+# Rigenera macos/Blurry.icns e docs/icona.png (README, Windows e Linux)
+# dall'icona disegnata in codice (AppIconArt in macos/Sources/Blurry/AppIcon.swift).
+# Si lancia solo quando il disegno cambia; entrambi i file sono committati.
 #
 #   scripts/icona.sh
 #
@@ -31,3 +31,5 @@ for size in 16 32 128 256 512; do
 done
 iconutil -c icns "$SET" -o "$OUT"
 echo "scritto $OUT"
+sips -z 256 256 "$WORK/icon_1024.png" --out "$ROOT/docs/icona.png" >/dev/null
+echo "scritto $ROOT/docs/icona.png"

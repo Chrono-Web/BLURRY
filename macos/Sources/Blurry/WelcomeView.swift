@@ -17,7 +17,7 @@ struct WelcomeView: View {
                 Text("Blurry").font(.headline).foregroundStyle(.secondary)
             }
             VStack(alignment: .leading, spacing: 18) {
-                Image(systemName: symbol).font(.system(size: 36, weight: .light)).foregroundStyle(accent)
+                MascotView(nudge: page).frame(width: 64, height: 64)
                 Text(title).font(.title2.weight(.semibold))
                 if page == 0 {
                     Text(L.welcomeSubtitle).font(.title3)
@@ -60,14 +60,6 @@ struct WelcomeView: View {
         case 0: L.welcomeTitle
         case 1: L.welcomeSafetyTitle
         default: L.welcomeWorkflowTitle
-        }
-    }
-
-    private var symbol: String {
-        switch page {
-        case 0: "hand.raised"
-        case 1: "viewfinder"
-        default: "photo.on.rectangle.angled"
         }
     }
 

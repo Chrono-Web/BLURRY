@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
+    QHBoxLayout,
     QMessageBox,
     QPushButton,
     QSlider,
@@ -22,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from blurry_opsec import __version__, i18n, levels
+from blurry_opsec.gui.mascot import Mascot
 from blurry_opsec.gui.widgets import label
 
 RELEASES_URL = "https://github.com/Chrono-Web/BLURRY/releases"
@@ -36,6 +38,20 @@ def guide(window, first: bool = False) -> QDialog:
     dlg.setWindowTitle(text("Benvenuto in Blurry", "Welcome to Blurry"))
     dlg.setMinimumWidth(520)
     layout = QVBoxLayout(dlg)
+    intro = QHBoxLayout()
+    intro.setSpacing(16)
+    dlg.mascot = Mascot(72)
+    intro.addWidget(dlg.mascot)
+    hello = label(
+        text(
+            "Ciao, sono Blurry. Ti spiego come funziono in tre passi.",
+            "Hi, I’m Blurry. Here’s how I work, in three steps.",
+        ),
+        "guideHeading",
+    )
+    hello.setWordWrap(True)
+    intro.addWidget(hello, 1)
+    layout.addLayout(intro)
     for it, en in [
         ("1. Scegli foto e video", "1. Choose photos and videos"),
         (
