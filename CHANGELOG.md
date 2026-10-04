@@ -12,6 +12,8 @@
 - Blurry becomes a small animated character in onboarding (Qt guide and macOS
   welcome): the icon's mosaic blinks, follows the pointer and greets. Cells are
   recomputed only while it moves; Reduce Motion keeps it still on macOS.
+- Onboarding is centred and goes one step at a time on every system (the Qt
+  guide gains Back/Next/Skip); Blurry stays in place above the changing text.
 - The app icon's mosaic moves from 7 × 7 to 9 × 9 blocks, the same grid as the
   character. `scripts/icona.sh` now regenerates `docs/icona.png` too.
 

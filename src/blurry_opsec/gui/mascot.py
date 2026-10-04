@@ -52,6 +52,11 @@ class Mascot(QWidget):
         self.anim.set_smiling(self.now(), on)
         self.wake()
 
+    def nudge(self) -> None:
+        """A small reaction, for example when the page beside it changes."""
+        self.anim.blink(self.now(), double=True)
+        self.wake()
+
     def showEvent(self, event) -> None:
         super().showEvent(event)
         self.anim.last_t = None

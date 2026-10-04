@@ -107,11 +107,11 @@ def test_animator_greets_and_looks_at_viewer():
     assert a.pose(t + 1) == face.Pose(smile=1)
 
 
-def test_guide_shows_the_mascot(tmp_path, monkeypatch):
+def test_guide_in_steps_with_blurry_still(tmp_path, monkeypatch):
     pytest.importorskip("PySide6.QtWidgets")
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     monkeypatch.setenv("BLURRY_PREFS_INI", str(tmp_path / "prefs.ini"))
-    from PySide6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication, QPushButton
 
     from blurry_opsec.gui.main_window import MainWindow
     from blurry_opsec.gui.mascot import Mascot
@@ -122,13 +122,25 @@ def test_guide_shows_the_mascot(tmp_path, monkeypatch):
     try:
         window.show_guide(first=True)
         qa.processEvents()
-        m = window.guide_dialog.findChild(Mascot)
+        dlg = window.guide_dialog
+        m = dlg.findChild(Mascot)
         assert m is not None and m.isVisible()
         assert m.anim.smiling and m.frame.isActive()
-        image = m.grab().toImage()
-        assert image.width() == 72
-        window.guide_dialog.reject()
+        assert m.grab().toImage().width() == 96
+        # Centred, and in the same place on every page.
+        assert abs(m.geometry().center().x() - dlg.width() / 2) <= 1
+        place = m.geometry()
+        forward = next(b for b in dlg.findChildren(QPushButton) if b.objectName() == "primary")
+        assert dlg.pages.count() == 3 and dlg.pages.currentIndex() == 0
+        for page in (1, 2):
+            forward.click()
+            qa.processEvents()
+            assert dlg.pages.currentIndex() == page
+            assert m.geometry() == place
+        assert not Prefs().onboarded
+        forward.click()
         qa.processEvents()
+        assert Prefs().onboarded
         assert not m.frame.isActive() and not m.pointer.isActive() and not m.blinker.isActive()
     finally:
         window.close()

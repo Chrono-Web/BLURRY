@@ -7,8 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import QRectF, Qt, QUrl
+from PySide6.QtGui import QColor, QDesktopServices, QPainter
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -17,12 +17,14 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSlider,
+    QStackedWidget,
     QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
 from blurry_opsec import __version__, i18n, levels
+from blurry_opsec.gui import style
 from blurry_opsec.gui.mascot import Mascot
 from blurry_opsec.gui.widgets import label
 
@@ -33,34 +35,18 @@ def text(it: str, en: str) -> str:
     return it if i18n.language() == "it" else en
 
 
-def guide(window, first: bool = False) -> QDialog:
-    dlg = QDialog(window)
-    dlg.setWindowTitle(text("Benvenuto in Blurry", "Welcome to Blurry"))
-    dlg.setMinimumWidth(520)
-    layout = QVBoxLayout(dlg)
-    intro = QHBoxLayout()
-    intro.setSpacing(16)
-    dlg.mascot = Mascot(72)
-    intro.addWidget(dlg.mascot)
-    hello = label(
-        text(
-            "Ciao, sono Blurry. Ti spiego come funziono in tre passi.",
-            "Hi, I’m Blurry. Here’s how I work, in three steps.",
-        ),
-        "guideHeading",
-    )
-    hello.setWordWrap(True)
-    intro.addWidget(hello, 1)
-    layout.addLayout(intro)
-    for it, en in [
-        ("1. Scegli foto e video", "1. Choose photos and videos"),
+GUIDE_PAGES = [
+    (
+        ("Scegli foto e video", "Choose photos and videos"),
         (
             "Tutto viene elaborato sul computer, senza rete e senza telemetria. "
             "Nessuna cronologia di file o cartelle viene salvata.",
             "Everything is processed on your computer, offline, without telemetry. "
             "No file or folder history is saved.",
         ),
-        ("2. Rivedi e correggi i volti", "2. Review and correct faces"),
+    ),
+    (
+        ("Rivedi e correggi i volti", "Review and correct faces"),
         (
             "Apri Rivedi prima di esportare. Aggiungi, sposta o elimina riquadri nelle foto; "
             "nei video controlla le tracce e aggiungi coperture manuali sugli intervalli. "
@@ -69,7 +55,9 @@ def guide(window, first: bool = False) -> QDialog:
             "in videos check tracks and add manual covers over time intervals. "
             "The detector can miss faces; bodies, places and voices can identify people.",
         ),
-        ("3. Controlla l’anteprima ed esporta", "3. Check the preview and export"),
+    ),
+    (
+        ("Controlla l’anteprima ed esporta", "Check the preview and export"),
         (
             "Blurry crea nuovi file senza metadati e preserva gli originali. "
             "L’audio è disattivato a ogni avvio. Conserva solo sensibilità, copertura, "
@@ -78,14 +66,110 @@ def guide(window, first: bool = False) -> QDialog:
             "Audio is off at every launch. Only sensitivity, coverage, padding, "
             "language and guide completion are saved.",
         ),
-    ]:
-        item = label(text(it, en), "guideHeading" if it[:1].isdigit() else "body")
-        item.setWordWrap(True)
-        layout.addWidget(item)
-    buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
-    buttons.button(QDialogButtonBox.StandardButton.Ok).setText(text("Inizia", "Start"))
+    ),
+]
+
+
+class PageDots(QWidget):
+    """Where the guide is: one capsule per page, the current one long and green."""
+
+    def __init__(self, count: int, parent=None) -> None:
+        super().__init__(parent)
+        self.count = count
+        self.current = 0
+        self.setFixedSize(28 + (count - 1) * 16, 6)
+
+    def set_current(self, index: int) -> None:
+        self.current = index
+        self.update()
+
+    def paintEvent(self, event) -> None:
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setPen(Qt.PenStyle.NoPen)
+        x = 0.0
+        for i in range(self.count):
+            on = i == self.current
+            w = 28 if on else 8
+            p.setBrush(QColor(style.ACCENT) if on else QColor(255, 255, 255, 38))
+            p.drawRoundedRect(QRectF(x, 0.5, w, 5), 2.5, 2.5)
+            x += w + 8
+        p.end()
+
+
+def guide(window, first: bool = False) -> QDialog:
+    """The guide, one step at a time. Blurry stays still at the top, centred;
+    only the text below it changes."""
+    dlg = QDialog(window)
+    dlg.setWindowTitle(text("Benvenuto in Blurry", "Welcome to Blurry"))
+    dlg.setFixedSize(500, 430)
+    layout = QVBoxLayout(dlg)
+    layout.setContentsMargins(36, 28, 36, 22)
+    layout.setSpacing(16)
+    center = Qt.AlignmentFlag.AlignHCenter
+
+    dlg.mascot = Mascot(96)
+    layout.addWidget(dlg.mascot, 0, center)
+    hello = label(text("Ciao, sono Blurry.", "Hi, I’m Blurry."), "muted")
+    hello.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    layout.addWidget(hello)
+    dots = PageDots(len(GUIDE_PAGES))
+    layout.addWidget(dots, 0, center)
+
+    dlg.pages = QStackedWidget()
+    for (title_it, title_en), (body_it, body_en) in GUIDE_PAGES:
+        page = QWidget()
+        col = QVBoxLayout(page)
+        col.setContentsMargins(0, 4, 0, 0)
+        col.setSpacing(10)
+        for item in (
+            label(text(title_it, title_en), "guideHeading"),
+            label(text(body_it, body_en), "body"),
+        ):
+            item.setWordWrap(True)
+            item.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+            col.addWidget(item)
+        col.addStretch(1)
+        dlg.pages.addWidget(page)
+    layout.addWidget(dlg.pages, 1)
+
+    # Skip on the left, then Back and Next/Start on the right, on every system.
+    row = QHBoxLayout()
+    buttons = QDialogButtonBox()
+    skip = buttons.addButton(text("Salta", "Skip"), QDialogButtonBox.ButtonRole.AcceptRole)
+    skip.setObjectName("link")
+    row.addWidget(buttons)
+    row.addStretch(1)
+    back = QPushButton(text("Indietro", "Back"))
+    forward = QPushButton()
+    forward.setObjectName("primary")
+    forward.setDefault(True)
+    row.addWidget(back)
+    row.addWidget(forward)
+    layout.addLayout(row)
+
+    def go(index: int) -> None:
+        dlg.pages.setCurrentIndex(index)
+        dots.set_current(index)
+        last = index == len(GUIDE_PAGES) - 1
+        back.setVisible(index > 0)
+        skip.setVisible(not last)
+        forward.setText(text("Inizia", "Start") if last else text("Avanti", "Next"))
+        if index:
+            dlg.mascot.nudge()
+
+    def advance() -> None:
+        index = dlg.pages.currentIndex()
+        if index == len(GUIDE_PAGES) - 1:
+            dlg.accept()
+        else:
+            go(index + 1)
+
+    forward.clicked.connect(advance)
+    back.clicked.connect(lambda: go(dlg.pages.currentIndex() - 1))
     buttons.accepted.connect(dlg.accept)
-    layout.addWidget(buttons)
+    dlg.go = go
+    go(0)
     if first:
         dlg.accepted.connect(lambda: setattr(window.prefs, "onboarded", True))
     dlg.setModal(True)
