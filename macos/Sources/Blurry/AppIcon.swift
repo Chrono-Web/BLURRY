@@ -28,9 +28,8 @@ struct AppIconArt: View {
     }
 }
 
-/// The pixelated face, on the same 9 × 9 grid as the animated mascot
-/// (MascotFace). Blocks are grey, lighter towards the top left as if lit from
-/// there, with a fixed pseudo-random variation so it reads as a mosaic.
+/// Blurry's face at rest (eyes open, looking ahead): the same 9 × 9 mosaic
+/// the animated mascot draws (MascotFace), so icon and onboarding match.
 @MainActor
 private struct Mosaic: View {
     var body: some View {
@@ -39,12 +38,11 @@ private struct Mosaic: View {
             let cell = size.width / CGFloat(n)
             // Gap and corner radius keep the proportions of the original 7 × 7 blocks.
             let gap = cell * 9 / 74.3, radius = cell * 16 / 74.3
-            for c in MascotFace.cells(n) {
-                let diagonal = Double(c.row + c.col) / Double(2 * (n - 1))
-                let light = 0.66 - 0.54 * diagonal + MascotFace.noise(c.col, c.row) * 0.08
+            let values = MascotFace.values(MascotFace.Pose())
+            for (c, v) in zip(MascotFace.cells(n), values) {
                 let rect = CGRect(x: CGFloat(c.col) * cell + gap / 2, y: CGFloat(c.row) * cell + gap / 2,
                                   width: cell - gap, height: cell - gap)
-                ctx.fill(Path(roundedRect: rect, cornerRadius: radius), with: .color(Color(white: max(0.20, light))))
+                ctx.fill(Path(roundedRect: rect, cornerRadius: radius), with: .color(Color(white: min(1, max(0, v)))))
             }
         }
     }
