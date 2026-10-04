@@ -1,6 +1,6 @@
 # Distribuzione desktop e verifiche
 
-Aggiornato: 2026-10-04. Versione **0.1.2b1**, pubblicata come pre-release (beta) su GitHub il 2026-10-04.
+Aggiornato: 2026-10-04. Versione **0.1.2**, pubblicata su GitHub il 2026-10-04 (dopo la beta 0.1.2b1, provata su Windows 11).
 La richiesta estende i pacchetti pronti oltre macOS.
 Python rimane pienamente supportato: vedi [contratto CLI](CLI_CONTRACT.md).
 
@@ -79,8 +79,8 @@ interattiva su Windows 11 e Ubuntu con desktop reali.
 Il workflow release riusa lo stesso job sul tag, mantiene wheel/sdist, SBOM e DMG,
 e aggiunge gli installer, SBOM con Qt, SHA256SUMS complessivo e attestazioni GitHub.
 La pubblicazione GitHub è bloccata se uno dei build/test dei pacchetti fallisce.
-I pacchetti Windows e Linux sono pubblicati nella pre-release
-[v0.1.2b1](https://github.com/Chrono-Web/BLURRY/releases/tag/v0.1.2b1). Un tag con
+I pacchetti Windows e Linux sono pubblicati nella release
+[v0.1.2](https://github.com/Chrono-Web/BLURRY/releases/tag/v0.1.2). Un tag con
 suffisso PEP 440 (`a`, `b`, `rc`) diventa una pre-release GitHub e non diventa «Latest»:
 i link `releases/latest` continuano a puntare all'ultima versione stabile.
 La CI attesta i pacchetti dei branch interni dopo i test; le PR da fork non
@@ -129,7 +129,6 @@ Qt Mac di prova. Non sono stati pubblicati su una release o su PyPI.
 Gli artefatti locali non hanno attestazioni GitHub: queste vengono generate solo
 nel workflow remoto. I checksum locali sono in `build/python-dist/SHA256SUMS`.
 La versione 0.1.2 è allineata in pyproject, `blurry_opsec.__version__`, lock e
-Info.plist macOS. La release pubblica corrente resta 0.1.1; i suoi tag e pacchetti
-non includono le modifiche di questo ramo. Non rinominare i vecchi artefatti 0.1.1:
-per 0.1.2 servono nuovi build. La verifica del DMG è obbligatoria anche nel workflow
+Info.plist macOS. *(2026-10-04: la release stabile corrente è la 0.1.2, con build nuove
+dal workflow di release.)* Non rinominare i vecchi artefatti 0.1.1. La verifica del DMG è obbligatoria anche nel workflow
 di release. Vedi [prove desktop da completare](VERIFICA_DESKTOP.md).

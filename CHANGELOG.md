@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.2] — 2026-10-04
 
 - Windows and Linux: the Qt app now works like the Mac app. Only the drop window at first;
   then a guide takes one file at a time (sensitivity, cover, margin, sound, result) with the

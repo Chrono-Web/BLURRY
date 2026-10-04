@@ -12,11 +12,11 @@
 <p align="center">
   <a href="https://github.com/Chrono-Web/BLURRY/releases/latest/download/Blurry.dmg"><b>⬇ Scarica per Mac</b></a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/Chrono-Web/BLURRY/releases/download/v0.1.2b1/Blurry-0.1.2b1-windows-x64-setup.exe"><b>⬇ Scarica per Windows</b></a>
+  <a href="https://github.com/Chrono-Web/BLURRY/releases/download/v0.1.2/Blurry-0.1.2-windows-x64-setup.exe"><b>⬇ Scarica per Windows</b></a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/Chrono-Web/BLURRY/releases/download/v0.1.2b1/Blurry-0.1.2b1-linux-x86_64.tar.gz"><b>⬇ Scarica per Linux</b></a>
+  <a href="https://github.com/Chrono-Web/BLURRY/releases/download/v0.1.2/Blurry-0.1.2-linux-x86_64.tar.gz"><b>⬇ Scarica per Linux</b></a>
   <br>
-  <sub>Mac 0.1.1 (Apple Silicon, macOS 14+) · Windows 11 e Ubuntu 24.04 0.1.2 beta (x64) · gratuito e open source (MIT)</sub>
+  <sub>Mac (Apple Silicon, macOS 14+) · Windows 11 e Ubuntu 24.04 (x64) · versione 0.1.2 · gratuito e open source (MIT)</sub>
   <br>
   <sub><a href="README.md">English</a> · <a href="THREAT_MODEL.it.md">Modello delle minacce</a> · <a href="SECURITY.md">Sicurezza</a></sub>
 </p>
@@ -42,19 +42,19 @@ Apple Silicon (M1 o successivi), macOS 14 o successivo.
    Apple. Apri Impostazioni di Sistema › Privacy e sicurezza, scorri in fondo e premi **Apri
    comunque** accanto a Blurry. Serve una volta sola.
 
-### Windows e Linux (beta)
+### Windows e Linux
 
-I pacchetti pronti sono in **beta**: si scaricano dalla
-[pre-release v0.1.2b1](https://github.com/Chrono-Web/BLURRY/releases/tag/v0.1.2b1).
+I pacchetti pronti si scaricano dalla
+[release v0.1.2](https://github.com/Chrono-Web/BLURRY/releases/tag/v0.1.2).
 
-- **Windows 11 x64:** `Blurry-0.1.2b1-windows-x64-setup.exe`. Aprilo: installa solo per il tuo
+- **Windows 11 x64:** `Blurry-0.1.2-windows-x64-setup.exe`. Aprilo: installa solo per il tuo
   utente, senza amministratore. Blurry non è firmato, quindi la prima volta SmartScreen avvisa:
   scegli **Ulteriori informazioni › Esegui comunque**.
-- **Ubuntu 24.04 x86-64:** `Blurry-0.1.2b1-linux-x86_64.tar.gz`. Estrailo e lancia
+- **Ubuntu 24.04 x86-64:** `Blurry-0.1.2-linux-x86_64.tar.gz`. Estrailo e lancia
   `sh install.sh` dentro la cartella `Blurry-linux`.
 
-Python, Qt e il modello sono inclusi. È una beta: non è ancora stata provata su desktop Windows
-e Linux reali, quindi controlla ogni risultato prima di condividerlo e segnala i problemi nelle
+Python, Qt e il modello sono inclusi. Provato su un desktop Windows 11 reale;
+su Linux per ora solo in CI. Controlla ogni risultato prima di condividerlo e segnala i problemi nelle
 [Issues](https://github.com/Chrono-Web/BLURRY/issues). Librerie di sistema, disinstallazione e
 verifiche ancora aperte sono in [Distribuzione desktop](docs/DISTRIBUZIONE.md).
 
