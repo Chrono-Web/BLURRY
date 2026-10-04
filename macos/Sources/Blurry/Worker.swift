@@ -68,13 +68,14 @@ final class Worker {
         proc.standardOutput = stdout
         proc.standardInput = stdin
         proc.standardError = FileHandle.standardError
-        stdout.fileHandleForReading.readabilityHandler = { [weak self] handle in
+        let ref = WeakWorker(self)
+        stdout.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData
             if data.isEmpty { handle.readabilityHandler = nil }
-            DispatchQueue.main.async { MainActor.assumeIsolated { self?.receive(data) } }
+            DispatchQueue.main.async { MainActor.assumeIsolated { ref.value?.receive(data) } }
         }
-        proc.terminationHandler = { [weak self] _ in
-            DispatchQueue.main.async { MainActor.assumeIsolated { self?.terminated() } }
+        proc.terminationHandler = { _ in
+            DispatchQueue.main.async { MainActor.assumeIsolated { ref.value?.terminated() } }
         }
         do {
             try proc.run()
@@ -173,4 +174,11 @@ final class Worker {
         let delay = pow(2.0, Double(restarts - 1))
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { MainActor.assumeIsolated { self.start() } }
     }
+}
+
+/// A weak reference to the worker that the pipe and termination handlers (which
+/// run on other threads) carry to the main queue, where it is only read.
+private final class WeakWorker: @unchecked Sendable {
+    weak var value: Worker?
+    init(_ value: Worker) { self.value = value }
 }
