@@ -100,6 +100,7 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
           packages-dir: pypi/
+          skip-existing: true
 
   github-release:
     needs: [build, macos-dmg]
@@ -125,10 +126,13 @@ jobs:
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >
-          gh release create "${RELEASE_TAG}" dist/*
-          --repo "${GITHUB_REPOSITORY}"
-          --verify-tag
-          --title "Blurry ${RELEASE_TAG}"
-          --notes "See CHANGELOG.md. Verify downloads with SHA256SUMS and
-          gh attestation verify <file> --repo ${GITHUB_REPOSITORY}."
+        run: |
+          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release ${RELEASE_TAG} already exists; keeping its published assets."
+            exit 0
+          fi
+          gh release create "${RELEASE_TAG}" dist/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --verify-tag \
+            --title "Blurry ${RELEASE_TAG}" \
+            --notes "See CHANGELOG.md. Verify downloads with SHA256SUMS and gh attestation verify <file> --repo ${GITHUB_REPOSITORY}."

@@ -46,18 +46,14 @@ Serve Python 3.12. Il modo più semplice è [pipx](https://pipx.pypa.io/) (oppur
 l'app:
 
 ```bash
-pipx install "blurry-opsec[gui] @ https://github.com/Chrono-Web/BLURRY/releases/download/v0.1.0/blurry_opsec-0.1.0-py3-none-any.whl"
+pipx install "blurry-opsec[gui]"
 ```
 
 Solo il comando da terminale:
 
 ```bash
-pipx install "https://github.com/Chrono-Web/BLURRY/releases/download/v0.1.0/blurry_opsec-0.1.0-py3-none-any.whl"
+pipx install blurry-opsec
 ```
-
-Finché la pubblicazione su PyPI non è configurata, si installa la wheel dalla Release GitHub.
-Quando sarà su PyPI, potrai usare `pipx install "blurry-opsec[gui]"` oppure
-`pipx install blurry-opsec`.
 
 ## L'app
 

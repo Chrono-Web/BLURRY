@@ -2,9 +2,12 @@
 
 All notable changes are listed here. Versions follow [Semantic Versioning](https://semver.org/).
 
-## [0.1.0] — unreleased
+## [0.1.0] — 2026-10-04
 
 First public release: the desktop app and the `blurry` command.
+
+- Native macOS app (SwiftUI, Apple Silicon, macOS 14+) distributed as `Blurry.dmg`,
+  with the frozen Python engine, image/video review and a first-run guide.
 
 - Desktop app (PySide6, optional `gui` extra): drag and drop queue, image editor with detected and
   manual boxes, video review with timeline, review flags, track on/off and manual boxes over a
