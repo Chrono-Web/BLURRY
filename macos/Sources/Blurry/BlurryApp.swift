@@ -48,6 +48,10 @@ struct BlurryApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
 
+        Settings {
+            PreferencesView().environment(store)
+        }
+
         Window(L.queue, id: "queue") {
             QueueWindow().environment(store)
         }
@@ -63,7 +67,7 @@ struct BlurryApp: App {
                     .keyboardShortcut("o")
             }
             CommandGroup(replacing: .help) {
-                Button(L.restartGuide) { store.restartOnboarding() }
+                RestartGuideCommand().environment(store)
                 Divider()
                 Button(L.updates) { NSWorkspace.shared.open(releasesURL) }
             }
@@ -79,5 +83,19 @@ struct QueueCommand: View {
     var body: some View {
         Button(L.queue) { openWindow(id: "queue") }
             .keyboardShortcut("l")
+    }
+}
+
+/// Bring the main window back when replaying from another window.
+@MainActor
+struct RestartGuideCommand: View {
+    @Environment(Store.self) private var store
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button(L.restartGuide) {
+            openWindow(id: "main")
+            store.restartOnboarding()
+        }
     }
 }

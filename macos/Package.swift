@@ -8,5 +8,6 @@ let package = Package(
     platforms: [.macOS(.v14)],
     targets: [
         .executableTarget(name: "Blurry", path: "Sources/Blurry"),
+        .testTarget(name: "BlurryTests", dependencies: ["Blurry"], path: "Tests"),
     ]
 )

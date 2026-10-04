@@ -179,6 +179,73 @@ enum L {
     static var openQueue: String { t("Apri la coda", "Open the Queue") }
     static var restartGuide: String { t("Rivedi la guida", "Show the Guide Again") }
 
+    // Introduction and preferences
+    static var welcomeTitle: String { t("Prima di cominciare", "Before you start") }
+    static var welcomeSubtitle: String { t("Copri. Controlla. Condividi.", "Cover. Check. Share.") }
+    static var welcomePrivacy: String {
+        t("Blurry lavora solo sul tuo computer. Copre i volti e rimuove i metadati, senza caricare nulla.",
+          "Blurry works only on your computer. It covers faces and removes metadata, without uploading anything.")
+    }
+    static var welcomeSafetyTitle: String { t("L'ultimo controllo è tuo", "The final check is yours") }
+    static var welcomeSafety: String {
+        t("Il rilevatore può mancare dei volti. Guarda sempre il risultato e aggiungi a mano i riquadri che mancano prima di condividere.",
+          "The detector can miss faces. Always check the result and add any missing boxes by hand before sharing.")
+    }
+    static var welcomeLimits: String {
+        t("Corpi, tatuaggi, voci e luoghi possono ancora identificare una persona. L'audio viene tolto, salvo una tua scelta esplicita.",
+          "Bodies, tattoos, voices and places can still identify a person. Sound is removed unless you explicitly choose to keep it.")
+    }
+    static var welcomeWorkflowTitle: String { t("Un file, pochi passi", "One file, a few steps") }
+    static var welcomeDrop: String { t("Trascina una foto o un video", "Drop a photo or video") }
+    static var welcomeReview: String { t("Scegli la copertura e correggi i riquadri", "Choose the cover and correct the boxes") }
+    static var welcomeExport: String { t("Controlla il risultato ed esporta", "Check the result and export") }
+    static var welcomeOriginal: String {
+        t("Blurry crea un file nuovo. L'originale resta sul disco e negli eventuali servizi di sincronizzazione.",
+          "Blurry creates a new file. The original stays on disk and in any sync services you use.")
+    }
+    static var start: String { t("Apri Blurry", "Start using Blurry") }
+    static var preferencesTitle: String { t("Impostazioni", "Settings") }
+    static var processing: String { t("Elaborazione", "Processing") }
+    static var sensitivity: String { t("Sensibilità", "Sensitivity") }
+    static var cover: String { t("Copertura", "Cover") }
+    static var margin: String { t("Margine", "Margin") }
+    static var preferencesEffect: String {
+        t("Le scelte vengono ricordate e si applicano anche al file aperto. Puoi cambiarle durante la revisione.",
+          "These choices are remembered and also apply to the open file. You can change them during review.")
+    }
+    static var restoreDefaults: String { t("Ripristina valori consigliati", "Restore recommended values") }
+    static var audioDefault: String {
+        t("L'audio parte sempre spento. Puoi mantenerlo nella revisione di ogni video, ricordando che le voci possono identificare.",
+          "Sound starts off every time. You can keep it when reviewing a video, remembering that voices can identify people.")
+    }
+    static var privacyTitle: String { t("Privacy", "Privacy") }
+    static var preferencesPrivacy: String {
+        t("Nessuna rete, account o telemetria. Blurry ricorda solo le impostazioni e se hai visto la guida: mai file o cartelle recenti.",
+          "No network, accounts or telemetry. Blurry remembers only preferences and whether you have seen the guide: never recent files or folders.")
+    }
+    static var guideTitle: String { t("Guida", "Guide") }
+    static var guideDescription: String { t("Rivedi l'introduzione e i suggerimenti sul primo file.", "Replay the introduction and tips on your first file.") }
+    static var aboutTitle: String { t("Informazioni", "About") }
+    static var version: String { t("Versione", "Version") }
+    static var updatesDescription: String {
+        t("Apre le Release nel browser. Blurry non cerca aggiornamenti in automatico.",
+          "Opens Releases in your browser. Blurry does not check for updates automatically.")
+    }
+
+    static var updatesTitle: String { t("Aggiornamenti", "Updates") }
+    static var uninstallTitle: String { t("Disinstalla", "Uninstall") }
+    static var uninstall: String { t("Disinstalla Blurry…", "Uninstall Blurry…") }
+    static var uninstallQuestion: String { t("Disinstallare Blurry?", "Uninstall Blurry?") }
+    static var uninstallDescription: String {
+        t("Chiude Blurry, sposta l'app nel Cestino e cancella le impostazioni e lo stato della guida. Foto, video originali ed esportazioni restano dove sono. Reinstallando Blurry, la guida riparte dall'inizio.",
+          "Quits Blurry, moves the app to the Trash and removes preferences and guide progress. Original photos, videos and exports stay where they are. Reinstalling Blurry starts the guide from the beginning.")
+    }
+    static var uninstallErrorTitle: String { t("Blurry non è stato disinstallato", "Blurry was not uninstalled") }
+    static var uninstallError: String {
+        t("Non riesco a spostare l'app nel Cestino. Se è aperta dal disco di installazione, installala prima in Applicazioni. Le impostazioni non sono state cancellate.",
+          "The app could not be moved to the Trash. If it is open from the installation disk, install it in Applications first. Preferences have not been removed.")
+    }
+
     // Menu
     static var updates: String { t("Aggiornamenti di Blurry", "Blurry Updates") }
 }

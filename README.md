@@ -14,7 +14,7 @@
   &nbsp;·&nbsp;
   <a href="#with-python-windows-linux-command-line"><b>Windows and Linux (with Python)</b></a>
   <br>
-  <sub>Version 0.1.0 · Mac with Apple Silicon, macOS 14+ · free and open source (MIT)</sub>
+  <sub>Version 0.1.1 · Mac with Apple Silicon, macOS 14+ · free and open source (MIT)</sub>
   <br>
   <sub><a href="README.it.md">Italiano</a> · <a href="THREAT_MODEL.md">Threat model</a> · <a href="SECURITY.md">Security</a></sub>
 </p>
@@ -68,8 +68,13 @@ pipx install blurry-opsec
 4. **Export…** opens the save panel on the original's folder, with `<name>_blurry`. The original
    is never touched. If no face was found, Blurry asks first.
 
-Every file of the session is in View › Queue (⌘L). A short guide accompanies the first file
-(Help › Show the Guide Again).
+Every file of the session is in View › Queue (⌘L). On first launch, an introduction explains
+how to work and the detector's limits; contextual tips then accompany the first file.
+Replay it from Help › Show the Guide Again or from Settings.
+
+**Blurry › Settings…** (⌘,) opens sensitivity, cover and margin, with an option to restore
+recommended values. Changes also apply to the open file. This window also contains the guide,
+the installed version, Releases for manual updates and uninstallation.
 
 **On Windows and Linux**, run `blurry` with no arguments (or `blurry-app`) to open the app
 installed with Python:
@@ -117,9 +122,12 @@ under `flags` in the `--json` report.
 
 ## Uninstall
 
-**Mac:** drag Blurry from Applications to the Bin. Blurry keeps no data: its only preferences
-(sensitivity, cover, margin, and whether the guide was seen) live in
-`~/Library/Preferences/com.chronocol.blurry.plist`, which you can delete.
+**Mac:** open Blurry › Settings… › Uninstall and click **Uninstall Blurry…**.
+After confirmation, the app moves to the Trash and its preferences are removed.
+Photos, videos and exports stay where they are. Reinstalling the app starts onboarding from scratch.
+
+You can also quit Blurry and drag it from Applications to the Trash. In that case preferences
+remain: to reset them, run `defaults delete com.chronocol.blurry` in Terminal with the app closed.
 
 **With Python:** `pipx uninstall blurry-opsec`.
 

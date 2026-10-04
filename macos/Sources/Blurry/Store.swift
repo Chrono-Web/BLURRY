@@ -76,6 +76,7 @@ enum Step: Int, CaseIterable {
 final class Store {
     var items: [Item] = []
     var notice: String?
+    var uninstallFailed = false
 
     // The guide: which file, which step, what the floating picture shows.
     var currentID: UUID? { didSet { if currentID != oldValue { enterFile() } } }
@@ -103,7 +104,7 @@ final class Store {
 
     @ObservationIgnored let jobs = Worker()   // analysis and export
     @ObservationIgnored let view = Worker()   // previews and playback
-    @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private let defaults: UserDefaults
 
     // Settings. Level, mode and padding are kept between sessions (R2 allows
     // exactly these); audio is off at every start.
@@ -120,11 +121,13 @@ final class Store {
     // Only a boolean is kept ("onboarded", allowed by R2).
     enum Tip { case steps, correct, queue }
     var onboarded: Bool { didSet { defaults.set(onboarded, forKey: "onboarded") } }
+    var showWelcome: Bool
+    var guiding: Bool
     var tipStage = 0   // 0 steps, 1 correct, 2 waiting for the first export, then queue
 
     /// The tip to show now, if any.
     var tip: Tip? {
-        guard !onboarded, let item = current, !editing else { return nil }
+        guard guiding, !showWelcome, let item = current, !editing else { return nil }
         if item.status == .exported { return .queue }
         switch tipStage {
         case 0: return .steps
@@ -135,14 +138,41 @@ final class Store {
 
     func nextTip() { tipStage += 1 }
 
+    /// The introduction is complete; contextual tips continue for this session.
+    func beginGuidedSession() {
+        onboarded = true
+        showWelcome = false
+    }
+
     func finishOnboarding() {
+        showWelcome = false
+        guiding = false
         onboarded = true
         tipStage = 0
+    }
+
+    /// Preferences ▸ Uninstall. Remove preferences only after moving the app succeeds.
+    func uninstall() {
+        guard let id = Bundle.main.bundleIdentifier else {
+            uninstallFailed = true
+            return
+        }
+        do {
+            try AppRemoval.remove(Bundle.main.bundleURL, defaults: defaults, domain: id)
+        } catch {
+            uninstallFailed = true
+            return
+        }
+        jobs.shutdown()
+        view.shutdown()
+        NSApplication.shared.terminate(nil)
     }
 
     /// Help ▸ Show the Guide Again.
     func restartOnboarding() {
         onboarded = false
+        showWelcome = true
+        guiding = true
         tipStage = 0
         defaults.removeObject(forKey: "onboarded")
     }
@@ -154,7 +184,8 @@ final class Store {
     @ObservationIgnored private var previewAgain = false
     @ObservationIgnored private var exportQueue: [(UUID, URL)] = []
 
-    init() {
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         let l = defaults.string(forKey: "level") ?? ""
         level = levelKeys.contains(l) ? l : "high"
         let m = defaults.string(forKey: "mode") ?? ""
@@ -162,7 +193,10 @@ final class Store {
         let p = (defaults.object(forKey: "padding") as? NSNumber)?.doubleValue
             ?? Double(defaults.string(forKey: "padding") ?? "") ?? 0.25
         padding = (0...1).contains(p) ? p : 0.25
-        onboarded = defaults.bool(forKey: "onboarded")
+        let seenGuide = defaults.bool(forKey: "onboarded")
+        onboarded = seenGuide
+        showWelcome = !seenGuide
+        guiding = !seenGuide
         jobs.onCrash = { [weak self] in self?.notice = L.workerCrashed }
         view.onCrash = { [weak self] in self?.previewInFlight = false; self?.playing = false }
     }

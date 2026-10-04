@@ -2,6 +2,14 @@
 
 All notable changes are listed here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] — 2026-10-04
+
+- macOS: first-launch introduction with contextual tips, replayable from Help and Settings.
+- Native grouped Settings window for sensitivity, cover, margin, manual updates and uninstall.
+- Uninstallation moves the app to the Trash and removes preferences; reinstalling starts
+  onboarding from scratch. Originals and exports are preserved; failed removal keeps preferences.
+- Dismissing a contextual tip no longer advances onboarding or opens the queue.
+
 ## [0.1.0] — 2026-10-04
 
 First public release: the desktop app and the `blurry` command.

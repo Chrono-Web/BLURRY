@@ -73,3 +73,4 @@ jobs:
         with:
           persist-credentials: false
       - run: swift build --package-path macos -c release --arch arm64
+      - run: swift test --package-path macos

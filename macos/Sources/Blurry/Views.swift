@@ -90,6 +90,7 @@ struct ContentView: View {
     @State private var targeted = false
 
     var body: some View {
+        @Bindable var store = store
         Group {
             if store.currentID == nil {
                 landing
@@ -109,6 +110,10 @@ struct ContentView: View {
                       allowsMultipleSelection: true) { result in
             Privacy.scrubAfterPanel()
             if case let .success(urls) = result { store.add(urls) }
+        }
+        .sheet(isPresented: $store.showWelcome) {
+            WelcomeView().environment(store)
+                .interactiveDismissDisabled()
         }
         .tint(accent)
         .preferredColorScheme(.dark)

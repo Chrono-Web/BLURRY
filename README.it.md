@@ -14,7 +14,7 @@
   &nbsp;·&nbsp;
   <a href="#con-python-windows-linux-comando-da-terminale"><b>Windows e Linux (con Python)</b></a>
   <br>
-  <sub>Versione 0.1.0 · Mac con Apple Silicon, macOS 14+ · gratuito e open source (MIT)</sub>
+  <sub>Versione 0.1.1 · Mac con Apple Silicon, macOS 14+ · gratuito e open source (MIT)</sub>
   <br>
   <sub><a href="README.md">English</a> · <a href="THREAT_MODEL.it.md">Modello delle minacce</a> · <a href="SECURITY.md">Sicurezza</a></sub>
 </p>
@@ -69,8 +69,13 @@ pipx install blurry-opsec
 4. **Esporta…** apre il pannello di salvataggio sulla cartella dell'originale, con
    `<nome>_blurry`. L'originale non viene mai toccato. Se non ha trovato volti, Blurry chiede prima.
 
-Tutti i file della sessione sono in Vista › Coda (⌘L). Una breve guida accompagna il primo file
-(Aiuto › Rivedi la guida).
+Tutti i file della sessione sono in Vista › Coda (⌘L). Al primo avvio un'introduzione spiega
+come lavorare e i limiti del rilevatore; poi i suggerimenti accompagnano il primo file.
+Puoi rivederla da Aiuto › Rivedi la guida oppure dalle Impostazioni.
+
+**Blurry › Impostazioni…** (⌘,) apre sensibilità, copertura e margine, con il ripristino dei
+valori consigliati. Le scelte si applicano anche al file aperto. Da qui trovi anche la guida,
+la versione installata, le Release per aggiornare a mano e la disinstallazione.
 
 **Su Windows e Linux**, lancia `blurry` senza argomenti (oppure `blurry-app`) per aprire l'app
 installata con Python:
@@ -119,9 +124,12 @@ sotto `flags` nel resoconto `--json`.
 
 ## Disinstallare
 
-**Mac:** trascina Blurry da Applicazioni al Cestino. Blurry non tiene dati: le sole preferenze
-(sensibilità, copertura, margine e il segno della guida già vista) stanno in
-`~/Library/Preferences/com.chronocol.blurry.plist`, che puoi buttare.
+**Mac:** apri Blurry › Impostazioni… › Disinstalla e premi **Disinstalla Blurry…**.
+Dopo la conferma, l'app si sposta nel Cestino e le preferenze vengono cancellate.
+Foto, video ed esportazioni restano dove sono. Reinstallando l'app, l'onboarding riparte da zero.
+
+Puoi anche chiudere Blurry e trascinarla da Applicazioni al Cestino. In questo caso le preferenze
+restano: per azzerarle, con l'app chiusa esegui `defaults delete com.chronocol.blurry` nel Terminale.
 
 **Con Python:** `pipx uninstall blurry-opsec`.
 

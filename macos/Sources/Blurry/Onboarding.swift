@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// The first-run guide: three tips shown as system popovers next to what they
-/// talk about (step bar, "Correct the boxes", the saved file). Closing a
-/// popover by clicking elsewhere counts as "got it".
+/// talk about (step bar, "Correct the boxes", the saved file). Only an explicit
+/// action advances the guide; dismissing a popover never opens another window.
 /// No TipKit: it keeps a datastore in Application Support, and R2 wants that
 /// folder not to exist.
 @MainActor
@@ -51,13 +51,15 @@ private struct GuideTip: ViewModifier {
     let arrowEdge: Edge
     let actionTitle: String
     let action: (() -> Void)?
+    @State private var dismissed = false
 
     func body(content: Content) -> some View {
         content.popover(isPresented: Binding(
-            get: { store.tip == tip },
-            set: { shown in if !shown && store.tip == tip { (action ?? store.nextTip)() } }
+            get: { store.tip == tip && !dismissed },
+            set: { shown in if !shown { dismissed = true } }
         ), arrowEdge: arrowEdge) {
             TipContent(text: text, actionTitle: actionTitle, action: action)
         }
+        .onChange(of: store.tip) { _, _ in dismissed = false }
     }
 }
