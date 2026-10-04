@@ -1,3 +1,3 @@
 """Blurry: cover faces and strip metadata from photos and videos, offline."""
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
