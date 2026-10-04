@@ -1,44 +1,31 @@
-# Blurry
+<p align="center">
+  <img src="docs/icona.png" width="128" height="128" alt="Blurry icon">
+</p>
 
-**Cover faces and strip metadata from photos and videos — on your own computer, with no network.**
+<h1 align="center">Blurry</h1>
 
-[Italiano](README.it.md) · [Threat model](THREAT_MODEL.md) · [Security](SECURITY.md) · License: [MIT](LICENSE)
+<p align="center">
+  Cover faces and strip metadata from photos and videos,<br>
+  on your own computer, with no network.
+</p>
+
+<p align="center">
+  <a href="https://github.com/Chrono-Web/BLURRY/releases/latest/download/Blurry.dmg"><b>⬇ Download for Mac</b></a>
+  &nbsp;·&nbsp;
+  <a href="#with-python-windows-linux-command-line"><b>Windows and Linux (with Python)</b></a>
+  <br>
+  <sub>Version 0.1.0 · Mac with Apple Silicon, macOS 14+ · free and open source (MIT)</sub>
+  <br>
+  <sub><a href="README.it.md">Italiano</a> · <a href="THREAT_MODEL.md">Threat model</a> · <a href="SECURITY.md">Security</a></sub>
+</p>
 
 Blurry finds faces, covers them with a solid black box (or pixelation), and writes a new file with
 no metadata: no GPS position, no camera model, no dates, no hidden thumbnail of the original. It
 runs entirely offline. It has no server, no account, no telemetry and no update check, and it
 refuses to open network connections even if something tries.
 
-> Blurry is a **desktop app** (drag in your photos and videos, check the boxes, export) and a
-> **command-line tool** for scripts. On a Mac it is a native app you download as `Blurry.dmg`;
-> on Windows and Linux the app and the command line install with Python, as shown below.
-
-## What it does
-
-- **Covers faces** in photos and videos, using the YuNet face detector (bundled; its SHA-256 is
-  checked on every start, and Blurry refuses to run if it does not match).
-- **Removes all metadata**:
-  - photos: EXIF (including the embedded thumbnail), GPS, XMP, IPTC, colour profiles and comments;
-  - videos: container and track tags (QuickTime location, device, dates), chapters, subtitles,
-    data tracks (such as GoPro and drone GPS) and cover art.
-- **Applies the rotation** of phone photos and videos to the pixels first, so sideways faces are
-  not missed, and the output looks the same as before without carrying rotation metadata.
-- **Drops audio by default**, because voices can identify people. Keep it with `--keep-audio`.
-- **Never overwrites anything**: the original stays untouched, and if the output name is taken a
-  numbered name is used.
-- **Never stays silent when no face is found**: it warns, and with `--strict` it writes nothing
-  and exits with code 2.
-
-## What it does not do
-
-Read the [threat model](THREAT_MODEL.md) before relying on Blurry. In short, it does **not** hide
-bodies, clothes, tattoos, voices, places, reflections, or the camera sensor's fingerprint; it
-cannot cover a face the detector does not find; it does not delete your original, which may also
-be synced to iCloud or Google Photos.
-
-**The detector can miss faces**, especially faces in profile, in the dark, very small, or turned
-sideways. Always look at the result before sharing it. Files with uncertain detections are listed
-under `flags` in the `--json` report.
+> **Always check the result before you share it:** the detector can miss faces, and Blurry
+> does not hide bodies, voices or places. See [What it does not do](#what-it-does-not-do).
 
 ## Install
 
@@ -101,7 +88,49 @@ whether the guide was seen): never file names, folders or recent files. The Qt a
 file picker, because Qt's dialogs keep a list of recent folders; the Mac app uses the system's
 panels and removes what they record as soon as they close.
 
-## Use
+## What it does
+
+- **Covers faces** in photos and videos, using the YuNet face detector (bundled; its SHA-256 is
+  checked on every start, and Blurry refuses to run if it does not match).
+- **Removes all metadata**:
+  - photos: EXIF (including the embedded thumbnail), GPS, XMP, IPTC, colour profiles and comments;
+  - videos: container and track tags (QuickTime location, device, dates), chapters, subtitles,
+    data tracks (such as GoPro and drone GPS) and cover art.
+- **Applies the rotation** of phone photos and videos to the pixels first, so sideways faces are
+  not missed, and the output looks the same as before without carrying rotation metadata.
+- **Drops audio by default**, because voices can identify people. Keep it with `--keep-audio`.
+- **Never overwrites anything**: the original stays untouched, and if the output name is taken a
+  numbered name is used.
+- **Never stays silent when no face is found**: it warns, and with `--strict` it writes nothing
+  and exits with code 2.
+
+## What it does not do
+
+Read the [threat model](THREAT_MODEL.md) before relying on Blurry. In short, it does **not** hide
+bodies, clothes, tattoos, voices, places, reflections, or the camera sensor's fingerprint; it
+cannot cover a face the detector does not find; it does not delete your original, which may also
+be synced to iCloud or Google Photos.
+
+**The detector can miss faces**, especially faces in profile, in the dark, very small, or turned
+sideways. Always look at the result before sharing it. Files with uncertain detections are listed
+under `flags` in the `--json` report.
+
+## Uninstall
+
+**Mac:** drag Blurry from Applications to the Bin. Blurry keeps no data: its only preferences
+(sensitivity, cover, margin, and whether the guide was seen) live in
+`~/Library/Preferences/com.chronocol.blurry.plist`, which you can delete.
+
+**With Python:** `pipx uninstall blurry-opsec`.
+
+## Report a problem
+
+Something does not work, or a face is not covered? Open an
+[issue](https://github.com/Chrono-Web/BLURRY/issues/new): say what you did and what happened,
+**without attaching photos or videos of real people**. Security vulnerabilities do not go in
+public issues: follow [SECURITY.md](SECURITY.md).
+
+## From the command line
 
 ```bash
 blurry photo.jpg

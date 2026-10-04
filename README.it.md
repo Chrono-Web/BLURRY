@@ -1,46 +1,33 @@
-# Blurry
+<p align="center">
+  <img src="docs/icona.png" width="128" height="128" alt="Icona di Blurry">
+</p>
 
-**Copre i volti e cancella i metadati di foto e video, sul tuo computer e senza rete.**
+<h1 align="center">Blurry</h1>
 
-[English](README.md) · [Modello delle minacce](THREAT_MODEL.it.md) · [Sicurezza](SECURITY.md) · Licenza: [MIT](LICENSE)
+<p align="center">
+  Copre i volti e cancella i metadati di foto e video,<br>
+  sul tuo computer e senza rete.
+</p>
+
+<p align="center">
+  <a href="https://github.com/Chrono-Web/BLURRY/releases/latest/download/Blurry.dmg"><b>⬇ Scarica per Mac</b></a>
+  &nbsp;·&nbsp;
+  <a href="#con-python-windows-linux-comando-da-terminale"><b>Windows e Linux (con Python)</b></a>
+  <br>
+  <sub>Versione 0.1.0 · Mac con Apple Silicon, macOS 14+ · gratuito e open source (MIT)</sub>
+  <br>
+  <sub><a href="README.md">English</a> · <a href="THREAT_MODEL.it.md">Modello delle minacce</a> · <a href="SECURITY.md">Sicurezza</a></sub>
+</p>
 
 Blurry trova i volti, li copre con un rettangolo nero (o con la pixelazione) e scrive un file nuovo
 senza metadati: niente posizione GPS, niente modello della fotocamera, niente date, niente
 miniatura nascosta dell'originale. Funziona tutto senza rete: niente server, account, telemetria o
 controllo degli aggiornamenti, e rifiuta di aprire connessioni anche se qualcosa ci prova.
 
-> Blurry è un'**app** (trascini foto e video, controlli i riquadri, esporti) e un **comando da
-> terminale** per gli script. Su Mac è un'app nativa che si scarica come `Blurry.dmg`; su Windows
-> e Linux l'app e il comando si installano con Python, come spiegato sotto.
+> **Guarda sempre il risultato prima di condividerlo:** il rilevatore può mancare dei volti, e
+> Blurry non nasconde corpi, voci o luoghi. Vedi [Che cosa non fa](#che-cosa-non-fa).
 
-## Che cosa fa
-
-- **Copre i volti** in foto e video, con il rilevatore YuNet (incluso; il suo SHA-256 si controlla
-  a ogni avvio, e se non corrisponde Blurry non parte).
-- **Toglie tutti i metadati**:
-  - foto: EXIF (compresa la miniatura incorporata), GPS, XMP, IPTC, profili colore e commenti;
-  - video: tag del contenitore e delle tracce (luogo QuickTime, dispositivo, date), capitoli,
-    sottotitoli, tracce dati (come il GPS di GoPro e droni) e copertine.
-- **Applica prima la rotazione** di foto e video del telefono ai pixel, così i volti di lato non
-  sfuggono, e il risultato si vede come prima senza portarsi dietro i metadati di rotazione.
-- **Toglie l'audio di default**, perché le voci possono identificare. Per tenerlo: `--keep-audio`.
-- **Non sovrascrive mai niente**: l'originale resta intatto, e se il nome di uscita è già preso
-  ne usa uno numerato.
-- **Non tace mai se non trova volti**: avvisa, e con `--strict` non scrive niente ed esce con
-  codice 2.
-
-## Che cosa non fa
-
-Leggi il [modello delle minacce](THREAT_MODEL.it.md) prima di fidarti di Blurry. In breve, **non**
-nasconde corpi, vestiti, tatuaggi, voci, luoghi, riflessi né l'impronta del sensore della
-fotocamera; non può coprire un volto che il rilevatore non trova; non cancella l'originale, che può
-essere sincronizzato anche su iCloud o Google Foto.
-
-**Il rilevatore può mancare dei volti**, soprattutto di profilo, al buio, molto piccoli o girati di
-lato. Guarda sempre il risultato prima di condividerlo. I file con rilevamenti incerti sono elencati
-sotto `flags` nel resoconto `--json`.
-
-## Installazione
+## Installare
 
 ### Mac
 
@@ -103,7 +90,49 @@ se la guida è già stata vista): mai nomi di file, cartelle o file recenti. L'a
 selettore di file, perché i dialoghi di Qt tengono un elenco delle cartelle recenti; l'app per Mac
 usa i pannelli del sistema e toglie quello che registrano appena si chiudono.
 
-## Uso
+## Che cosa fa
+
+- **Copre i volti** in foto e video, con il rilevatore YuNet (incluso; il suo SHA-256 si controlla
+  a ogni avvio, e se non corrisponde Blurry non parte).
+- **Toglie tutti i metadati**:
+  - foto: EXIF (compresa la miniatura incorporata), GPS, XMP, IPTC, profili colore e commenti;
+  - video: tag del contenitore e delle tracce (luogo QuickTime, dispositivo, date), capitoli,
+    sottotitoli, tracce dati (come il GPS di GoPro e droni) e copertine.
+- **Applica prima la rotazione** di foto e video del telefono ai pixel, così i volti di lato non
+  sfuggono, e il risultato si vede come prima senza portarsi dietro i metadati di rotazione.
+- **Toglie l'audio di default**, perché le voci possono identificare. Per tenerlo: `--keep-audio`.
+- **Non sovrascrive mai niente**: l'originale resta intatto, e se il nome di uscita è già preso
+  ne usa uno numerato.
+- **Non tace mai se non trova volti**: avvisa, e con `--strict` non scrive niente ed esce con
+  codice 2.
+
+## Che cosa non fa
+
+Leggi il [modello delle minacce](THREAT_MODEL.it.md) prima di fidarti di Blurry. In breve, **non**
+nasconde corpi, vestiti, tatuaggi, voci, luoghi, riflessi né l'impronta del sensore della
+fotocamera; non può coprire un volto che il rilevatore non trova; non cancella l'originale, che può
+essere sincronizzato anche su iCloud o Google Foto.
+
+**Il rilevatore può mancare dei volti**, soprattutto di profilo, al buio, molto piccoli o girati di
+lato. Guarda sempre il risultato prima di condividerlo. I file con rilevamenti incerti sono elencati
+sotto `flags` nel resoconto `--json`.
+
+## Disinstallare
+
+**Mac:** trascina Blurry da Applicazioni al Cestino. Blurry non tiene dati: le sole preferenze
+(sensibilità, copertura, margine e il segno della guida già vista) stanno in
+`~/Library/Preferences/com.chronocol.blurry.plist`, che puoi buttare.
+
+**Con Python:** `pipx uninstall blurry-opsec`.
+
+## Segnalare un problema
+
+Qualcosa non funziona, o un volto non viene coperto? Apri una
+[issue](https://github.com/Chrono-Web/BLURRY/issues/new): descrivi che cosa hai fatto e che cosa
+è successo, **senza allegare foto o video di persone reali**. Le vulnerabilità di sicurezza invece
+non vanno nelle issue pubbliche: segui [SECURITY.md](SECURITY.md).
+
+## Dal terminale
 
 ```bash
 blurry foto.jpg
