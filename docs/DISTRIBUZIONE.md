@@ -8,8 +8,8 @@ Python rimane pienamente supportato: vedi [contratto CLI](CLI_CONTRACT.md).
 | Sistema | Formato / installazione | Stato |
 |---|---|---|
 | macOS 14+, Apple Silicon | `Blurry.dmg`, SwiftUI con motore congelato | distribuzione esistente preservata |
-| Windows 11 x64 | `Blurry-<versione>-windows-x64-setup.exe`, Inno Setup, per utente senza amministratore | [~] implementato, da costruire e provare su Windows |
-| Ubuntu 24.04 desktop x86-64 | `Blurry-<versione>-linux-x86_64.tar.gz`, `sh install.sh`, per utente | [~] implementato, da costruire e provare su Linux |
+| Windows 11 x64 | `Blurry-<versione>-windows-x64-setup.exe`, Inno Setup, per utente senza amministratore | [x] costruito e provato su runner Windows Server 2025; desktop Windows 11 reale da verificare |
+| Ubuntu 24.04 desktop x86-64 | `Blurry-<versione>-linux-x86_64.tar.gz`, `sh install.sh`, per utente | [x] costruito e provato in Ubuntu 24.04 pulito, senza Python né rete; desktop reale da verificare |
 | Server/container/pipeline con Python 3.12 | `blurry-opsec` su PyPI, CLI senza Qt; extra `[gui]` facoltativo | supporto preservato e contratti testati |
 
 Nessuna promessa di compatibilità con Windows ARM, Windows 10, Linux ARM, altre
@@ -69,16 +69,22 @@ native risolte. Vedi [licenze](../THIRD_PARTY_LICENSES.md) per i sorgenti.
 
 La CI chiama `desktop.yml` su Windows Server 2025 x64 e Ubuntu 24.04 x64:
 compila, installa, prova app e worker congelati, aggiorna, disinstalla e reinstalla.
-Il test Windows usa il runtime incorporato, ma il runner contiene Python e strumenti
-di sviluppo: non equivale a una macchina Windows pulita. Il container Linux runtime
+Il test Windows usa il runtime incorporato con PATH limitato alle directory di
+sistema e senza PYTHONHOME/PYTHONPATH/VIRTUAL_ENV, ma il runner contiene Python
+e strumenti di sviluppo: non equivale a una macchina Windows pulita. Il container Linux runtime
 non ha Python, checkout o rete e prova Qt con Xvfb. CI non sostituisce una prova
 interattiva su Windows 11 e Ubuntu con desktop reali.
 
 Il workflow release riusa lo stesso job sul tag, mantiene wheel/sdist, SBOM e DMG,
 e aggiunge gli installer, SBOM con Qt, SHA256SUMS complessivo e attestazioni GitHub.
 La pubblicazione GitHub è bloccata se uno dei build/test dei pacchetti fallisce.
-Non abbiamo pubblicato release né eseguito i workflow remoti in questa sessione.
-I link ai nuovi installer saranno validi solo quando una release li avrà generati.
+I workflow CI sono stati eseguiti e hanno generato i pacchetti; nessuna release è
+stata pubblicata. Gli artefatti verificati sono scaricabili dai run della
+[PR #2](https://github.com/Chrono-Web/BLURRY/pull/2). I link `releases/latest` ai
+nuovi installer saranno validi solo dopo la pubblicazione di una release.
+La CI attesta i pacchetti dei branch interni dopo i test; le PR da fork non
+richiedono permessi di attestazione. Il workflow release attesta anche l’insieme
+completo di file pubblicati.
 
 ## Verifiche realmente eseguite in questa sessione
 
@@ -93,19 +99,31 @@ I link ai nuovi installer saranno validi solo quando una release li avrà genera
   rimozione delle preferenze e reinstallazione; originali preservati (eseguito su macOS).
 - [x] Contratti CLI: stdin chiuso, display Qt invalido, JSON Lines, avanzamento,
   strict e codici di uscita, con l’extra Qt installato.
-- [~] Build installer Windows x64 e archivio Linux x86-64: ricette e CI pronte,
-  binari di questi target non generati su questo Mac.
-- [~] Prove Windows installato e Linux runtime senza rete: script pronti, da eseguire.
+- [x] Build installer Windows x64 e archivio Linux x86-64 in GitHub Actions.
+- [x] Windows installato: CLI, GUI e worker congelati, foto/video, revisione manuale,
+  IT/EN, onboarding, impostazioni, aggiornamento che conserva le preferenze,
+  disinstallazione e reinstallazione. Runner Windows Server 2025, UI offscreen.
+- [x] Linux runtime pulito senza Python, checkout o rete: CLI e GUI sotto Xvfb,
+  foto/video, revisione manuale, IT/EN, onboarding, impostazioni, aggiornamento,
+  disinstallazione e reinstallazione. Utente non privilegiato in Ubuntu 24.04.
+- [x] Suite del codice su Windows Server 2022, Ubuntu 24.04 e macOS 14; suite Linux
+  anche con rete disabilitata; wheel base senza Qt e wheel con extra GUI.
+- [x] Primo run completo: [37205750933](https://github.com/Chrono-Web/BLURRY/actions/runs/37205750933).
+- [x] Run con pipe UTF-8, percorsi Unicode, PATH Windows isolato e attestazioni:
+  [37206055793](https://github.com/Chrono-Web/BLURRY/actions/runs/37206055793).
+- [x] Checksum dei pacchetti scaricati controllati localmente; modello YuNet nel
+  pacchetto Linux verificato con SHA-256. Audit del bundle Linux: 84 testi di
+  licenza/avvisi, manifest nativo con Python 3.12.3 e OpenCV 5.0.0.93.
+  Il ramo include l’aggiornamento OpenCV già approvato su main; nessun downgrade.
 - [ ] Sessione desktop Windows 11 pulita, senza Python: SmartScreen, avvio dal menu,
   foto/HEIC/video, revisione, IT/EN, impostazioni, aggiornamento, disinstallazione,
   reinstallazione e onboarding.
 - [ ] Sessione Ubuntu 24.04 pulita, senza Python, su X11 e Wayland: stessi scenari,
   nomi di cartelle con spazi/Unicode, launcher e disinstallazione esterna.
 
-Blocchi dell’ambiente locale: Docker Desktop non riesce ad avviarsi; `gh auth status`
-segnala credenziali non valide. Non si possono quindi produrre/verificare qui i due
-binari nativi né attestazioni autentiche di release. Un pacchetto di sorgenti o il
-bundle Qt Mac di prova non sono installer Windows/Linux.
+Docker Desktop locale non riesce ad avviarsi. Dopo il login GitHub CLI sono stati
+usati i runner nativi: i binari Windows/Linux provengono dalla CI, non dal bundle
+Qt Mac di prova. Non sono stati pubblicati su una release o su PyPI.
 
 Gli artefatti locali non hanno attestazioni GitHub: queste vengono generate solo
 nel workflow remoto. I checksum locali sono in `build/python-dist/SHA256SUMS`.

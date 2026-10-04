@@ -44,9 +44,10 @@ Apple Silicon (M1 or later), macOS 14 or later.
 
 The new formats are a per-user Windows 11 x64 installer and an archive with a
 per-user installer for Ubuntu 24.04 x86-64. They bundle Python, Qt, the model and
-processing dependencies. **The recipes are implemented, but native packages have
-not yet been built and verified on their target systems in this session.** Get
-packages from [Releases](https://github.com/Chrono-Web/BLURRY/releases) when available.
+processing dependencies. Native packages are built and tested in CI and available as artifacts in the
+checks of [PR #2](https://github.com/Chrono-Web/BLURRY/pull/2), ahead of publication
+on [Releases](https://github.com/Chrono-Web/BLURRY/releases). Interactive testing
+on real desktop systems remains outstanding.
 See [distribution and verification status](docs/DISTRIBUZIONE.md) for system libraries,
 installation, uninstall and the exact tests still outstanding.
 

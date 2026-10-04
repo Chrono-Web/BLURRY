@@ -44,9 +44,10 @@ Apple Silicon (M1 o successivi), macOS 14 o successivo.
 
 I formati previsti sono un installer Windows 11 x64 e un archivio con installer per
 utente per Ubuntu 24.04 x86-64. Includono Python, Qt, modello e dipendenze: non serve
-installare Python. **I nuovi pacchetti sono implementati ma non ancora costruiti e
-verificati sui sistemi target in questa sessione.** Scaricali dalla pagina delle
-[Release](https://github.com/Chrono-Web/BLURRY/releases) quando disponibili.
+installare Python. I nuovi pacchetti sono costruiti e testati in CI; sono disponibili come artefatti
+nei check della [PR #2](https://github.com/Chrono-Web/BLURRY/pull/2), prima della
+pubblicazione sulle [Release](https://github.com/Chrono-Web/BLURRY/releases).
+Le prove interattive sui desktop reali rimangono da completare.
 Formati, installazione, librerie di sistema e verifiche sono documentati in
 [Distribuzione desktop](docs/DISTRIBUZIONE.md).
 
