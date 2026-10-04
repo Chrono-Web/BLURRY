@@ -17,7 +17,7 @@ classifiers = [
 ]
 dependencies = [
     # Headless on purpose: the regular wheel ships its own Qt, which clashes with PySide6.
-    "opencv-python-headless>=4.8,<5",
+    "opencv-python-headless>=4.8,<6",
     "numpy>=1.26",
     "pillow>=10.4",
     "pi-heif>=0.18",
