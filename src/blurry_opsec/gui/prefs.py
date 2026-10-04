@@ -1,9 +1,7 @@
-"""Preferences: level, mode, padding and language. Nothing else, ever.
+"""Only level, mode, padding, language and guide completion are persisted.
 
-No paths, no recent files, no output folder, no window geometry (R2). The
-macOS app shares this store (com.chronocol.blurry) and adds one more key,
-"onboarded" (a boolean: the first-run guide was seen), which is kept here too
-so that this app does not delete it.
+No paths, recent files, output folder or window geometry (R2). The macOS
+SwiftUI app shares the native com.chronocol.blurry preferences domain.
 """
 
 from __future__ import annotations
@@ -77,6 +75,21 @@ class Prefs:
     def language(self, v: str) -> None:
         if v in i18n.LANGUAGES:
             self._s.setValue("language", v)
+
+    @property
+    def onboarded(self) -> bool:
+        return str(self._s.value("onboarded", "false")).lower() in ("true", "1")
+
+    @onboarded.setter
+    def onboarded(self, value: bool) -> None:
+        self._s.setValue("onboarded", value)
+        self.sync()
+
+    def clear(self) -> None:
+        self._s.clear()
+        self.sync()
+        if self._s.status() != QSettings.Status.NoError:
+            raise OSError("Could not remove preferences")
 
     def sync(self) -> None:
         self._s.sync()

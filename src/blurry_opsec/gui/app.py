@@ -5,7 +5,7 @@ from __future__ import annotations
 import platform
 import sys
 
-from PySide6.QtCore import QSettings
+from PySide6.QtCore import QSettings, QTimer
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import QApplication
 
@@ -38,4 +38,6 @@ def run(argv: list[str] | None = None) -> int:
     app.setStyleSheet(style.qss(glass))
     window = MainWindow(Prefs(), glass=glass)
     window.show()
+    if not window.prefs.onboarded:
+        QTimer.singleShot(0, lambda: window.show_guide(first=True))
     return app.exec()

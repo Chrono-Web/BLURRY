@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Add Qt onboarding, replayable guide, settings, manual updates and uninstall controls.
+- Prepare per-user Windows x64 and Ubuntu 24.04 x86-64 native installer builds,
+  installed-package smoke tests, CI/release artifacts, GUI SBOMs and provenance.
+- Preserve PyPI engine/CLI and optional Qt; document and test headless CLI contracts.
+- Add a separate-process backend example and record Chrono integration differences.
+- Native Windows/Linux builds and real-desktop validation remain outstanding;
+  see `docs/DISTRIBUZIONE.md`.
+
+
 All notable changes are listed here. Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [0.1.1] — 2026-10-04

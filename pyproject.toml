@@ -49,7 +49,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
 include = ["src/blurry_opsec", "LICENSE", "THIRD_PARTY_LICENSES.md", "licenses", "README.md",
-           "README.it.md", "THREAT_MODEL.md", "THREAT_MODEL.it.md", "CHANGELOG.md"]
+           "README.it.md", "THREAT_MODEL.md", "THREAT_MODEL.it.md", "CHANGELOG.md",
+           "docs/*.md", "examples/*.mjs"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/blurry_opsec"]

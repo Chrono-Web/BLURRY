@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/Chrono-Web/BLURRY/releases/latest/download/Blurry.dmg"><b>⬇ Download for Mac</b></a>
   &nbsp;·&nbsp;
-  <a href="#with-python-windows-linux-command-line"><b>Windows and Linux (with Python)</b></a>
+  <a href="#windows-and-linux"><b>Windows and Linux</b></a>
   <br>
   <sub>Version 0.1.1 · Mac with Apple Silicon, macOS 14+ · free and open source (MIT)</sub>
   <br>
@@ -40,7 +40,17 @@ Apple Silicon (M1 or later), macOS 14 or later.
    Open System Settings › Privacy & Security, scroll down and click **Open Anyway** next to
    Blurry. You only do this once.
 
-### With Python (Windows, Linux, command line)
+### Windows and Linux
+
+The new formats are a per-user Windows 11 x64 installer and an archive with a
+per-user installer for Ubuntu 24.04 x86-64. They bundle Python, Qt, the model and
+processing dependencies. **The recipes are implemented, but native packages have
+not yet been built and verified on their target systems in this session.** Get
+packages from [Releases](https://github.com/Chrono-Web/BLURRY/releases) when available.
+See [distribution and verification status](docs/DISTRIBUZIONE.md) for system libraries,
+installation, uninstall and the exact tests still outstanding.
+
+### With Python (engine, servers, containers, CLI and optional Qt)
 
 You need Python 3.12. The simplest way is [pipx](https://pipx.pypa.io/) (or `uv tool`). With the
 desktop app:
@@ -76,8 +86,8 @@ Replay it from Help › Show the Guide Again or from Settings.
 recommended values. Changes also apply to the open file. This window also contains the guide,
 the installed version, Releases for manual updates and uninstallation.
 
-**On Windows and Linux**, run `blurry` with no arguments (or `blurry-app`) to open the app
-installed with Python:
+**On Windows and Linux**, open Blurry from your applications menu after installing;
+with the Python package, run `blurry` with no arguments (or `blurry-app`):
 
 1. **Drop** photos and videos on the window, or use *Choose files…*. Each file is analysed in a
    separate process; nothing leaves your computer.
@@ -88,7 +98,7 @@ installed with Python:
    not a face, or draw a box that covers an area for a span of time.
 3. **Export.** If a file has no face and you added none, Blurry asks before exporting it.
 
-Both apps remember only a few settings (sensitivity, cover, margin, language, and on the Mac
+Both apps remember only a few settings (sensitivity, cover, margin, language, and
 whether the guide was seen): never file names, folders or recent files. The Qt app uses its own
 file picker, because Qt's dialogs keep a list of recent folders; the Mac app uses the system's
 panels and removes what they record as soon as they close.
@@ -129,7 +139,13 @@ Photos, videos and exports stay where they are. Reinstalling the app starts onbo
 You can also quit Blurry and drag it from Applications to the Trash. In that case preferences
 remain: to reset them, run `defaults delete com.chronocol.blurry` in Terminal with the app closed.
 
-**With Python:** `pipx uninstall blurry-opsec`.
+**Windows and Linux:** Settings → Uninstall. Windows also supports removal from
+system Apps; Linux provides `~/.local/opt/blurry/uninstall.sh` with the app closed.
+Complete removal clears preferences and restarts onboarding after reinstallation.
+See [distribution](docs/DISTRIBUZIONE.md).
+
+**With Python:** `pipx uninstall blurry-opsec`; use Qt Settings → Uninstall → Clear
+preferences and close first if you also want to reset its preferences.
 
 ## Report a problem
 
@@ -137,6 +153,10 @@ Something does not work, or a face is not covered? Open an
 [issue](https://github.com/Chrono-Web/BLURRY/issues/new): say what you did and what happened,
 **without attaching photos or videos of real people**. Security vulnerabilities do not go in
 public issues: follow [SECURITY.md](SECURITY.md).
+
+The Qt app offers first-run onboarding, replayable from Guide and Settings.
+Settings includes editable defaults, manual updates in the external browser and
+uninstall. CLI invocations with arguments remain headless even with `[gui]` installed.
 
 ## From the command line
 
@@ -179,6 +199,10 @@ out as MP4 (H.264).
 
 Progress is printed on stderr as `__PROGRESS__ {json}` lines, for scripts and integrations.
 
+The [CLI contract](docs/CLI_CONTRACT.md) documents JSON Lines, progress and exit
+codes for backend processes and pipelines, including global errors and strict batches.
+The Node [process adapter example](examples/backend-process.mjs) does not modify Chrono.
+
 ## Verify what you download
 
 Every release on GitHub comes with a `SHA256SUMS` file, a CycloneDX SBOM, and a GitHub
@@ -216,7 +240,7 @@ PyPI shows its provenance on the project page.
 ## Licence
 
 Blurry is MIT-licensed. The PyPI package contains only Blurry's code, the YuNet model (MIT) and the
-Geist font (OFL). The Mac app (`Blurry.dmg`) also contains FFmpeg with **x264 and x265, which
+Geist font (OFL). Desktop installers also bundle dependencies and FFmpeg with **x264 and x265, which
 are GPL-2.0-or-later**, and the PyInstaller bootloader (GPL-2.0 with an exception for the
 programs it runs): see [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for every licence
 and the exact sources.

@@ -114,6 +114,18 @@ QScrollBar:vertical {{ background: transparent; width: 6px; }}
 QScrollBar::handle:vertical {{ background: rgba(255, 255, 255, 0.18); border-radius: 3px; min-height: 24px; }}
 QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; width: 0; }}
 QStatusBar {{ background: transparent; color: {MUTED}; }}
+/* Lifecycle panels use explicit dark surfaces instead of the system palette. */
+QWidget#lifecyclePage, QTabWidget::pane {{ background: {SURFACE}; }}
+QTabWidget::pane {{ border: 1px solid {LINE}; border-radius: 6px; }}
+QTabBar::tab {{ background: {SURFACE}; color: {MUTED}; padding: 9px 14px;
+  border: 1px solid {LINE}; }}
+QTabBar::tab:selected {{ color: {TEXT}; border-bottom: 2px solid {ACCENT}; }}
+QComboBox {{ background: {SURFACE}; color: {TEXT}; padding: 7px 10px;
+  border: 1px solid {LINE_HOVER}; border-radius: 5px; }}
+QComboBox QAbstractItemView {{ background: {SURFACE}; color: {TEXT};
+  selection-background-color: #333333; }}
+QLabel#body {{ color: {TEXT}; font-size: 13px; }}
+QLabel#guideHeading {{ color: {TEXT}; font-size: 17px; font-weight: 600; }}
 QDialog {{ background: #0b0b0b; }}
 QMessageBox {{ background: #0b0b0b; }}
 """

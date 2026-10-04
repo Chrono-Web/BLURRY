@@ -7,6 +7,7 @@ import json
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from PySide6.QtCore import QObject, QProcess, QTimer, Signal
 
@@ -14,6 +15,11 @@ from PySide6.QtCore import QObject, QProcess, QTimer, Signal
 def worker_command() -> tuple[str, list[str]]:
     """The same executable with the hidden worker argument."""
     if getattr(sys, "frozen", False):  # packaged app
+        worker = Path(sys.executable).with_name(
+            "blurry-engine.exe" if sys.platform == "win32" else "blurry-engine"
+        )
+        if worker.is_file():
+            return str(worker), ["__worker"]
         return sys.executable, ["__worker"]
     return sys.executable, ["-m", "blurry_opsec", "__worker"]
 

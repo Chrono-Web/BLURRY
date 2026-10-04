@@ -1,0 +1,54 @@
+name: Desktop packages
+on:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.ref }}
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7
+        with:
+          version: "0.12.22"
+          enable-cache: false
+      - name: Native tools (Windows)
+        if: runner.os == 'Windows'
+        run: choco install innosetup --yes --no-progress
+      - name: Native libraries (Linux)
+        if: runner.os == 'Linux'
+        run: >
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends
+          libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3 libglib2.0-0
+          libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1
+          libxcb-shape0 libxcb-xinerama0 xvfb
+      - run: uv sync --frozen --no-dev --extra gui --group packaging
+      - run: uv run --frozen --no-dev --extra gui --group packaging python scripts/build-desktop.py
+      - name: Frozen package in clean Linux container, no Python or network
+        if: runner.os == 'Linux'
+        run: |
+          docker build -f packaging/linux/smoke.Dockerfile -t blurry-desktop-clean .
+          docker run --rm --network none blurry-desktop-clean
+      - name: Installed Windows package and complete uninstall
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/test-windows-package.ps1
+      - name: SBOM with GUI dependencies
+        shell: bash
+        run: uv export --frozen --no-dev --extra gui --group packaging --format cyclonedx1.5 -o build/desktop-packages/blurry-${{ runner.os }}.cdx.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: desktop-${{ runner.os }}
+          path: build/desktop-packages/
+          if-no-files-found: error

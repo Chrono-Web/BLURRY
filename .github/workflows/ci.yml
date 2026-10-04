@@ -9,6 +9,38 @@ permissions:
   contents: read
 
 jobs:
+  desktop-packages:
+    uses: ./.github/workflows/desktop.yml
+
+  python-wheel:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        extra: [base, gui]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7
+        with:
+          version: "0.12.22"
+          enable-cache: false
+      - run: uv build --no-sources
+      - run: uv venv --python 3.12 build/wheel-test
+      - name: Install wheel and selected extra
+        env:
+          EXTRA: ${{ matrix.extra }}
+        run: |
+          WHEEL=$(find dist -name '*.whl')
+          if [ "$EXTRA" = gui ]; then WHEEL="$WHEEL[gui]"; fi
+          uv pip install --python build/wheel-test "$WHEEL" pytest
+      - name: Base wheel does not install Qt
+        if: matrix.extra == 'base'
+        run: build/wheel-test/bin/python -c "import importlib.util; assert importlib.util.find_spec('PySide6') is None"
+      - run: build/wheel-test/bin/python -m pytest tests/test_cli_contract.py -q
+        env:
+          QT_QPA_PLATFORM: deliberately-invalid
+
   lint:
     runs-on: ubuntu-24.04
     steps:

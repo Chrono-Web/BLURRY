@@ -22,7 +22,10 @@ def gui_available() -> bool:
     return True
 
 
-def gui_main() -> int:
+def gui_main(argv: list[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    if args:
+        return main(args)
     from blurry_opsec import tempfiles
 
     tempfiles.cleanup_stale()
