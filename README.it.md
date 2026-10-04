@@ -12,9 +12,11 @@
 <p align="center">
   <a href="https://github.com/Chrono-Web/BLURRY/releases/latest/download/Blurry.dmg"><b>⬇ Scarica per Mac</b></a>
   &nbsp;·&nbsp;
-  <a href="#windows-e-linux-beta"><b>Windows e Linux (beta)</b></a>
+  <a href="https://github.com/Chrono-Web/BLURRY/releases/download/v0.1.2b1/Blurry-0.1.2b1-windows-x64-setup.exe"><b>⬇ Scarica per Windows</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/Chrono-Web/BLURRY/releases/download/v0.1.2b1/Blurry-0.1.2b1-linux-x86_64.tar.gz"><b>⬇ Scarica per Linux</b></a>
   <br>
-  <sub>Versione 0.1.1 · Mac con Apple Silicon, macOS 14+ · gratuito e open source (MIT)</sub>
+  <sub>Mac 0.1.1 (Apple Silicon, macOS 14+) · Windows 11 e Ubuntu 24.04 0.1.2 beta (x64) · gratuito e open source (MIT)</sub>
   <br>
   <sub><a href="README.md">English</a> · <a href="THREAT_MODEL.it.md">Modello delle minacce</a> · <a href="SECURITY.md">Sicurezza</a></sub>
 </p>
