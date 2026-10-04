@@ -12,14 +12,14 @@ from pathlib import Path
 import av
 import numpy as np
 from PIL import Image
-from PySide6.QtWidgets import QApplication, QDialogButtonBox, QMessageBox, QPushButton
+from PySide6.QtCore import QRectF
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from blurry_opsec import i18n
 from blurry_opsec.gui.app import _contain_qt_settings
-from blurry_opsec.gui.lifecycle import preferences
 from blurry_opsec.gui.main_window import MainWindow
+from blurry_opsec.gui.preferences import Group
 from blurry_opsec.gui.prefs import ALLOWED_KEYS, Prefs
-from blurry_opsec.plan import Box
 
 
 def main(fixture: str) -> int:
@@ -30,6 +30,7 @@ def main(fixture: str) -> int:
         app = QApplication([])
         window = MainWindow(Prefs())
         window.show()
+        store = window.store
 
         def wait(predicate):
             end = time.monotonic() + 120
@@ -40,46 +41,45 @@ def main(fixture: str) -> int:
                 time.sleep(0.02)
             raise RuntimeError("GUI smoke timeout")
 
+        def export(item, output: Path) -> None:
+            store.open(item.id)
+            store.start_editing()
+            store.add_box(QRectF(10, 10, 30, 30))
+            store.end_editing(True)
+            store.export(output)
+            wait(lambda: item.status in ("exported", "error"))
+            if item.status != "exported" or not output.is_file():
+                raise RuntimeError(f"Frozen worker failed to export: {item.error}")
+
         try:
             if window.prefs.onboarded:
                 raise RuntimeError("First run preferences are not empty")
-            window.show_guide(first=True)
-            app.processEvents()
-            window.guide_dialog.findChild(QDialogButtonBox).accepted.emit()
+            wait(lambda: window.welcome is not None and window.welcome.isVisible())
+            for _ in range(3):
+                window.welcome.next_btn.click()
             if not Prefs().onboarded:
                 raise RuntimeError("Onboarding did not persist")
-            window.show_guide()
-            window.guide_dialog.accept()
             for language in ("it", "en"):
-                window._on_language(language)
+                window.set_language(language)
                 message = QMessageBox(window)
                 message.setStandardButtons(QMessageBox.StandardButton.Yes)
                 yes = message.button(QMessageBox.StandardButton.Yes).text().replace("&", "")
                 if yes != ("Sì" if language == "it" else "Yes"):
                     raise RuntimeError("Qt standard button translation missing")
-                dialog = preferences(window)
+                window.open_preferences()
                 app.processEvents()
-                if len(dialog.findChildren(QPushButton)) < 5:
-                    raise RuntimeError("Missing lifecycle controls")
-                dialog.close()
+                if len(window.preferences_dialog.findChildren(Group)) < 6:
+                    raise RuntimeError("Missing settings sections")
+                window.preferences_dialog.close()
             source = root / "original è 日本.jpg"
             shutil.copyfile(fixture, source)
             before = hashlib.sha256(source.read_bytes()).digest()
             window.add_paths([source])
-            wait(lambda: window.items[0].status not in ("waiting", "analyzing"))
-            item = window.items[0]
+            item = store.items[0]
+            wait(lambda: item.status not in ("waiting", "analyzing"))
             if item.plan is None:
                 raise RuntimeError("Frozen worker failed to analyse image")
-            window.queue.topLevelItem(0).setSelected(True)
-            window.open_review()
-            window.review.canvas.box_added.emit(Box(100, 100, 100, 100))
-            if not item.edited:
-                raise RuntimeError("Manual review failed")
-            window.close_review()
-            window.export(selected_only=False)
-            wait(lambda: item.status in ("exported", "error"))
-            if item.status != "exported" or not (root / item.output_name).is_file():
-                raise RuntimeError("Frozen worker failed to export")
+            export(item, root / "original è 日本_blurry.jpg")
             if hashlib.sha256(source.read_bytes()).digest() != before:
                 raise RuntimeError("Original changed")
             # Exercise bundled video decoders/encoders and manual video coverage.
@@ -96,18 +96,13 @@ def main(fixture: str) -> int:
                     container.mux(packet)
             video_before = hashlib.sha256(video.read_bytes()).digest()
             window.add_paths([video])
-            wait(lambda: window.items[-1].status not in ("waiting", "analyzing"))
-            clip = window.items[-1]
+            clip = store.items[-1]
+            wait(lambda: clip.status not in ("waiting", "analyzing"))
             if clip.plan is None:
                 raise RuntimeError("Frozen video analysis failed")
-            clip.plan.add_manual(0, 4, Box(10, 10, 30, 30))
-            clip.edited = True
-            clip.settle()
-            window.export(selected_only=False)
-            wait(lambda: clip.status in ("exported", "error"))
-            if clip.status != "exported":
-                raise RuntimeError("Frozen video export failed")
-            with av.open(str(root / clip.output_name)) as cleaned:
+            cleaned_path = root / "clip_blurry.mp4"
+            export(clip, cleaned_path)
+            with av.open(str(cleaned_path)) as cleaned:
                 if "location" in cleaned.metadata or cleaned.streams.audio:
                     raise RuntimeError("Video metadata or audio survived")
             if hashlib.sha256(video.read_bytes()).digest() != video_before:

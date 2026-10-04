@@ -75,43 +75,33 @@ pipx install blurry-opsec
 
 ## L'app
 
-**Su Mac** (`Blurry.dmg`):
+L'app funziona allo stesso modo **su Mac** (`Blurry.dmg`) e **su Windows e Linux** (gli
+installatori qui sopra; con il pacchetto Python lancia `blurry` senza argomenti, oppure
+`blurry-app`). Le scorciatoie usano ⌘ su Mac e Ctrl altrove.
 
-1. **Trascina** foto e video nella finestra, oppure usa *Scegli file…* (⌘O).
+1. **Trascina** foto e video nella finestra, oppure usa *Scegli file…* (⌘O / Ctrl+O).
 2. Una **guida** prende un file alla volta: il file al centro e sotto una scelta alla volta
    (sensibilità, copertura, margine e, per i video, l'audio). Dalla copertura in poi l'immagine
    mostra esattamente quello che verrà esportato; in un video puoi riprodurre il risultato coperto.
 3. **Correggi i riquadri** a mano se serve: nelle foto disegna, sposta, ridimensiona o togli i
    riquadri; nei video spegni una traccia che non è un volto, o disegna un riquadro fermo su un
    intervallo di tempo.
-4. **Esporta…** apre il pannello di salvataggio sulla cartella dell'originale, con
+4. **Esporta…** chiede dove salvare, partendo dalla cartella dell'originale, con
    `<nome>_blurry`. L'originale non viene mai toccato. Se non ha trovato volti, Blurry chiede prima.
 
-Tutti i file della sessione sono in Vista › Coda (⌘L). Al primo avvio un'introduzione spiega
-come lavorare e i limiti del rilevatore; poi i suggerimenti accompagnano il primo file.
+Tutti i file della sessione sono in Vista › Coda (⌘L / Ctrl+L). Al primo avvio un'introduzione
+spiega come lavorare e i limiti del rilevatore; poi i suggerimenti accompagnano il primo file.
 Puoi rivederla da Aiuto › Rivedi la guida oppure dalle Impostazioni.
 
-**Blurry › Impostazioni…** (⌘,) apre sensibilità, copertura e margine, con il ripristino dei
-valori consigliati. Le scelte si applicano anche al file aperto. Da qui trovi anche la guida,
-la versione installata, le Release per aggiornare a mano e la disinstallazione.
+Le **Impostazioni** (Blurry › Impostazioni… ⌘, su Mac; File › Impostazioni… Ctrl+, altrove)
+hanno sensibilità, copertura e margine, con il ripristino dei valori consigliati. Le scelte si
+applicano anche al file aperto. Da qui trovi anche la guida, la versione installata, le Release
+per aggiornare a mano e la disinstallazione; su Windows e Linux anche la lingua.
 
-**Su Windows e Linux**, apri Blurry dal menu dopo l’installazione; con il pacchetto
-Python lancia `blurry` senza argomenti (oppure `blurry-app`):
-
-1. **Trascina** foto e video nella finestra, oppure usa *Scegli file…*. Ogni file si analizza in
-   un processo separato; niente esce dal tuo computer.
-2. **Rivedi** i file. I riquadri trovati dal rilevatore sono gialli, quelli che aggiungi tu verde
-   acqua. Trascina su un'area vuota per aggiungere un riquadro, trascina un riquadro per spostarlo,
-   i suoi angoli per ridimensionarlo, premi Canc per eliminarlo. *Anteprima del risultato* mostra
-   esattamente quello che verrà esportato.
-   Nei video scorri la linea del tempo (i momenti incerti sono segnati in rosso), spegni una
-   traccia che non è un volto, o disegna un riquadro che copre un'area per un intervallo di tempo.
-3. **Esporta.** Se in un file non c'è nessun volto e non ne hai aggiunti, Blurry chiede conferma.
-
-Le due app ricordano solo poche impostazioni (sensibilità, copertura, margine, lingua e
-se la guida è già stata vista): mai nomi di file, cartelle o file recenti. L'app Qt usa un suo
-selettore di file, perché i dialoghi di Qt tengono un elenco delle cartelle recenti; l'app per Mac
-usa i pannelli del sistema e toglie quello che registrano appena si chiudono.
+Blurry ricorda solo poche impostazioni (sensibilità, copertura, margine, lingua e se la guida è
+già stata vista): mai nomi di file, cartelle o file recenti. Su Windows e Linux usa selettori di
+file suoi, perché i dialoghi del sistema e di Qt tengono un elenco delle cartelle recenti; l'app
+per Mac usa i pannelli del sistema e toglie quello che registrano appena si chiudono.
 
 ## Che cosa fa
 
@@ -149,13 +139,13 @@ Foto, video ed esportazioni restano dove sono. Reinstallando l'app, l'onboarding
 Puoi anche chiudere Blurry e trascinarla da Applicazioni al Cestino. In questo caso le preferenze
 restano: per azzerarle, con l'app chiusa esegui `defaults delete com.chronocol.blurry` nel Terminale.
 
-**Windows e Linux:** Impostazioni → Disinstallazione; Windows offre anche la rimozione
+**Windows e Linux:** Impostazioni → Disinstalla; Windows offre anche la rimozione
 dalle App di sistema, Linux lo script `~/.local/opt/blurry/uninstall.sh` con app chiusa.
 La rimozione completa elimina le preferenze e riavvia la guida alla reinstallazione.
 Vedi [distribuzione](docs/DISTRIBUZIONE.md).
 
-**Con Python:** `pipx uninstall blurry-opsec`; per azzerare le preferenze della Qt usa
-Impostazioni → Disinstallazione → Cancella preferenze e chiudi prima di rimuoverla.
+**Con Python:** `pipx uninstall blurry-opsec`. Per azzerare anche le preferenze dell'app usa
+prima Impostazioni → Disinstalla → Cancella le impostazioni e chiudi.
 
 ## Segnalare un problema
 
@@ -164,10 +154,7 @@ Qualcosa non funziona, o un volto non viene coperto? Apri una
 è successo, **senza allegare foto o video di persone reali**. Le vulnerabilità di sicurezza invece
 non vanno nelle issue pubbliche: segui [SECURITY.md](SECURITY.md).
 
-La Qt mostra la guida al primo avvio, richiamabile dal pulsante Guida e dalle
-Impostazioni. Impostazioni offre valori consigliati, aggiornamenti solo manuali
-nel browser esterno e disinstallazione. La CLI con argomenti rimane senza finestre,
-anche con `[gui]` installato.
+Con degli argomenti, `blurry` resta un comando: nessuna finestra, anche con `[gui]` installato.
 
 ## Dal terminale
 

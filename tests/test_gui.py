@@ -1,4 +1,5 @@
-"""The desktop app, driven offscreen: queue, review, export, preferences (R2)."""
+"""The Qt app, driven offscreen: the guide one file at a time, corrections by
+hand, export, the queue, preferences (R2)."""
 
 import os
 import time
@@ -12,10 +13,9 @@ pytest.importorskip("PySide6.QtWidgets")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from conftest import PUBLIC  # noqa: E402
-from PySide6.QtCore import QSettings  # noqa: E402
+from PySide6.QtCore import QPoint, QRectF, QSettings, Qt  # noqa: E402
+from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
-
-from blurry_opsec.plan import Box  # noqa: E402
 
 
 @pytest.fixture(scope="module")
@@ -45,60 +45,111 @@ def window(qapp):
     from blurry_opsec.gui.main_window import MainWindow
     from blurry_opsec.gui.prefs import Prefs
 
-    w = MainWindow(Prefs())
+    prefs = Prefs()
+    prefs.onboarded = True  # the introduction has its own test
+    prefs.language = "en"
+    w = MainWindow(prefs)
     w.show()
     yield w
     w.close()
 
 
-def test_full_flow(qapp, window, tmp_path):
+def test_guided_flow(qapp, window, tmp_path):
+    from blurry_opsec.gui.prefs import ALLOWED_KEYS
+
     qa, prefs = qapp
-    w = window
+    w, s = window, window.store
+    assert w.stack.currentWidget() is w.landing
     src = tmp_path / "in"
     src.mkdir()
     for name in ("dental_squadron.jpg", "challenger_51l_crew.jpg"):
         (src / name).write_bytes((PUBLIC / name).read_bytes())
-    blank = src / "wall.png"
-    Image.new("RGB", (300, 200), (90, 90, 90)).save(blank)
+    Image.new("RGB", (300, 200), (90, 90, 90)).save(src / "wall.png")
+    (src / "notes.txt").write_text("not a picture")
     w.add_paths([src])
     assert w.windowTitle() == "Blurry"
-    assert wait(qa, lambda: all(it.status not in ("waiting", "analyzing") for it in w.items))
-    by_name = {it.name: it for it in w.items}
+    assert s.notice and "1" in s.notice  # the text file was skipped
+    assert w.stack.currentWidget() is w.guide
+    assert s.current.name == "challenger_51l_crew.jpg" and s.step == "sensitivity"
+    assert wait(qa, lambda: all(it.analysed for it in s.items))
+    by_name = {it.name: it for it in s.items}
     assert by_name["challenger_51l_crew.jpg"].faces == 7
-    assert by_name["wall.png"].status == "no_faces" and by_name["wall.png"].uncovered_risk
+    assert by_name["wall.png"].status == "no_faces"
+    assert s.steps == ("sensitivity", "cover", "margin", "result")  # no audio for photos
 
-    # Review: the user adds a box by hand on the dental photo.
-    w.queue.clearSelection()
-    row = [it.name for it in w.items].index("dental_squadron.jpg")
-    w.queue.topLevelItem(row).setSelected(True)
-    w.open_review()
-    assert w.review is not None
-    w.review.canvas.box_added.emit(Box(100, 900, 200, 200))
-    assert len(by_name["dental_squadron.jpg"].plan.boxes) == 2
-    assert by_name["dental_squadron.jpg"].edited
-    w.review.preview_box.setChecked(True)
-    w.close_review()
+    # A new sensitivity is instant: the plans for every level are already there.
+    s.set_level("base")
+    assert not s.jobs.busy and s.current.plan is not None
+    s.set_level("high")
+    assert s.current.faces == 7
 
-    # Export to a chosen folder; the no-faces file is left out (not risky-exported).
+    # The step bar and the buttons move through the steps; the picture follows.
+    w.guide.step_bar.buttons["margin"].click()
+    assert s.step == "margin"
+    w.guide.back_btn.click()
+    assert s.step == "cover"
+    assert wait(qa, lambda: not s.preview_stale)
+
+    # Corrections by hand on the dental photo: drag on an empty area draws a box.
+    s.open(by_name["dental_squadron.jpg"].id)
+    before = by_name["dental_squadron.jpg"].faces
+    w.guide.picture.correct_btn.click()
+    assert s.editing and w.guide.bottom.currentWidget() is w.guide.edit_panel
+    assert wait(qa, lambda: s.edit_boxes and not s.preview_stale)
+    pic = w.guide.picture
+    r = pic.image_rect()
+    width = pic.plan_size()[0]
+    a = QPoint(int(r.left() + r.width() * 100 / width), int(r.top() + r.width() * 900 / width))
+    b = QPoint(int(r.left() + r.width() * 300 / width), int(r.top() + r.width() * 1100 / width))
+    QTest.mousePress(pic, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, a)
+    QTest.mouseMove(pic, QPoint((a.x() + b.x()) // 2, (a.y() + b.y()) // 2))
+    QTest.mouseMove(pic, b)
+    QTest.mouseRelease(pic, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, b)
+    assert by_name["dental_squadron.jpg"].faces == before + 1
+    assert s.selected_box is not None and s.selected_box.owner[0] == "drawn"
+    # Cancel puts back the corrections from before; Done keeps them.
+    w.guide.edit_panel.cancel_btn.click()
+    assert by_name["dental_squadron.jpg"].faces == before and not s.editing
+    s.start_editing()
+    s.add_box(QRectF(100, 900, 200, 200))
+    w.guide.edit_panel.done_btn.click()
+    assert by_name["dental_squadron.jpg"].faces == before + 1
+    # The corrections survive a change of sensitivity.
+    s.set_level("base")
+    s.set_level("high")
+    assert by_name["dental_squadron.jpg"].faces == before + 1
+
+    # Export to the path chosen in the save picker.
+    s.set_step("result")
     out = tmp_path / "out"
     out.mkdir()
-    w.out_dir = out
-    w.export_queue += [it for it in w.items if not it.uncovered_risk]
-    w.pump()
-    assert wait(qa, lambda: all(it.status in ("exported", "no_faces") for it in w.items))
-    assert sorted(p.name for p in out.iterdir()) == [
-        "challenger_51l_crew.blurry.jpg", "dental_squadron.blurry.jpg"]  # fmt: skip
-    arr = np.array(Image.open(out / "dental_squadron.blurry.jpg"))
+    s.export(out / "dental_squadron_blurry.jpg")
+    assert wait(qa, lambda: s.current.status == "exported")
+    arr = np.array(Image.open(out / "dental_squadron_blurry.jpg"))
     assert arr[930:1070, 130:270].max() < 10
-    assert list(src.iterdir()) and not [p for p in src.iterdir() if ".blurry" in p.name]
+    assert not [p for p in src.iterdir() if "blurry" in p.name]
+    assert w.guide.primary_btn.text() == "Next file" and w.guide.saved.isVisible()
 
-    # Preferences hold only the four allowed keys, and no paths.
-    w.prefs.padding = 0.3
-    w.prefs.sync()
-    text = prefs.read_text()
-    assert str(tmp_path) not in text and "out" not in text.lower().split("=")[0]
+    # The next file opens on the result, with the same settings.
+    w.guide.primary_btn.click()
+    assert s.current.name == "challenger_51l_crew.jpg"
+    assert s.step == "result" and s.using_previous
+    assert w.guide.previous_row.isVisible()
+
+    # The queue lists every file of the session; double-click opens one.
+    w.open_queue()
+    q = w.queue_window
+    assert q.list.count() == 3
+    assert {r.status.text() for r in q._rows.values()} >= {"Exported", "No face"}
+    wall = by_name["wall.png"]
+    q.open_item.emit(wall.id)
+    assert s.current is wall
+
+    # Preferences hold only the allowed keys, and no paths.
+    prefs_text = prefs.read_text()
+    assert str(tmp_path) not in prefs_text
     keys = set(QSettings(str(prefs), QSettings.Format.IniFormat).allKeys())
-    assert keys <= {"level", "mode", "padding", "language"}
+    assert keys <= set(ALLOWED_KEYS)
 
 
 def test_no_qt_file_dialog_and_picker_remembers_nothing(qapp, window, tmp_path):
@@ -118,11 +169,17 @@ def test_no_qt_file_dialog_and_picker_remembers_nothing(qapp, window, tmp_path):
     again = picker.Picker(window, "x", False, [".jpg"])
     assert again.current == Path.home()  # nothing remembered
     again.deleteLater()
+    # Saving starts in the original's folder, with <name>_blurry.<ext>.
+    save = picker.SavePicker(window, tmp_path, "a_blurry.jpg", ".jpg")
+    assert save.current == tmp_path and save.target() == tmp_path / "a_blurry.jpg"
+    save.name.setText("other")
+    assert save.target() == tmp_path / "other.jpg"
+    save.deleteLater()
 
 
 def test_language_switch(qapp, window):
-    window.lang_seg._buttons["it"].click()
-    assert window.export_all_btn.text() == "Esporta tutti"
+    window.set_language("it")
+    assert window.landing.title.text() == "Trascina qui foto e video"
     assert window.prefs.language == "it"
-    window.lang_seg._buttons["en"].click()
-    assert window.export_all_btn.text() == "Export all"
+    window.set_language("en")
+    assert window.landing.title.text() == "Drop photos and videos here"

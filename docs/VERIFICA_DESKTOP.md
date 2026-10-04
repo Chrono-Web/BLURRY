@@ -1,6 +1,8 @@
 # Verifica interattiva prima della pubblicazione
 
 Aggiornato: 2026-10-04. Versione in prova: 0.1.2b1, pubblicata come beta.
+*(2026-10-04: dopo la 0.1.2b1 l'interfaccia Qt è stata rifatta sul modello dell'app per Mac;
+gli scenari 2 e 4 vanno provati sulla prima build che la contiene.)*
 Sistemi supportati, dipendenze e risultati automatici vivono in
 [DISTRIBUZIONE.md](DISTRIBUZIONE.md). Questa procedura serve per le prove mancanti.
 
@@ -23,15 +25,17 @@ video sintetico; evitare dati personali nelle schermate o nelle segnalazioni.
 
 1. Installare con un utente normale e aprire Blurry dal menu applicazioni.
    Registrare gli avvisi effettivi del sistema (incluso SmartScreen su Windows).
-2. Verificare che la guida appaia al primo avvio, che si possa completare e
-   richiamare; chiudere e riaprire: la guida non deve ripartire da sola.
+2. Verificare che l'introduzione appaia al primo avvio, che si possa completare e
+   richiamare (Aiuto › Rivedi la guida), e che i tre suggerimenti accompagnino il
+   primo file; chiudere e riaprire: l'introduzione non deve ripartire da sola.
 3. Passare fra italiano e inglese nelle impostazioni, inclusi i pulsanti dei
    dialoghi standard. Cambiare sensibilità, copertura e margine, riaprire e
    verificare la persistenza; provare il ripristino delle impostazioni consigliate.
 4. Elaborare JPEG, HEIC e un video con audio da una cartella con spazi e Unicode.
    Correggere manualmente un riquadro nella foto e una traccia/intervallo nel video.
-   Controllare l'anteprima prima di esportare e poi aprire i risultati con un'altra
-   applicazione. Confermare la rimozione di metadati e audio secondo le opzioni
+   Controllare l'anteprima prima di esportare (il video si riproduce coperto);
+   «Esporta…» deve partire dalla cartella dell'originale con `<nome>_blurry`.
+   Poi aprire i risultati con un'altra applicazione. Confermare la rimozione di metadati e audio secondo le opzioni
    scelte, e confrontare i checksum degli originali prima e dopo.
 5. Provare un file senza volti: l'esportazione deve richiedere la conferma prevista.
    Provare un file corrotto e annullare un'elaborazione: l'interfaccia deve restare

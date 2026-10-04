@@ -75,41 +75,32 @@ pipx install blurry-opsec
 
 ## The app
 
-**On a Mac** (`Blurry.dmg`):
+The app works the same way **on a Mac** (`Blurry.dmg`) and **on Windows and Linux** (the
+installers above; with the Python package, run `blurry` with no arguments, or `blurry-app`).
+Shortcuts use ⌘ on a Mac and Ctrl elsewhere.
 
-1. **Drop** photos and videos on the window, or use *Choose Files…* (⌘O).
+1. **Drop** photos and videos on the window, or use *Choose Files…* (⌘O / Ctrl+O).
 2. A **guide** takes one file at a time: the file in the middle, and below it one choice at a
    time (sensitivity, cover, margin, and the sound for videos). From the cover step on, the
    picture shows exactly what will be exported; on a video you can play the covered result.
 3. **Correct the boxes** by hand if needed: draw, move, resize or remove boxes on photos; in
    videos switch off a track that is not a face, or draw a still box over a span of time.
-4. **Export…** opens the save panel on the original's folder, with `<name>_blurry`. The original
-   is never touched. If no face was found, Blurry asks first.
+4. **Export…** asks where to save, starting in the original's folder, with `<name>_blurry`. The
+   original is never touched. If no face was found, Blurry asks first.
 
-Every file of the session is in View › Queue (⌘L). On first launch, an introduction explains
-how to work and the detector's limits; contextual tips then accompany the first file.
+Every file of the session is in View › Queue (⌘L / Ctrl+L). On first launch, an introduction
+explains how to work and the detector's limits; contextual tips then accompany the first file.
 Replay it from Help › Show the Guide Again or from Settings.
 
-**Blurry › Settings…** (⌘,) opens sensitivity, cover and margin, with an option to restore
-recommended values. Changes also apply to the open file. This window also contains the guide,
-the installed version, Releases for manual updates and uninstallation.
+**Settings** (Blurry › Settings… ⌘, on a Mac; File › Settings… Ctrl+, elsewhere) holds
+sensitivity, cover and margin, with an option to restore recommended values. Changes also apply
+to the open file. This window also contains the guide, the installed version, Releases for
+manual updates and uninstallation; on Windows and Linux also the language.
 
-**On Windows and Linux**, open Blurry from your applications menu after installing;
-with the Python package, run `blurry` with no arguments (or `blurry-app`):
-
-1. **Drop** photos and videos on the window, or use *Choose files…*. Each file is analysed in a
-   separate process; nothing leaves your computer.
-2. **Review** any file. Boxes found by the detector are yellow, boxes you add are teal. Drag on an
-   empty area to add a box, drag a box to move it, drag its corners to resize it, press Delete to
-   remove it. *Preview result* shows exactly what will be exported.
-   In videos, scrub the timeline (uncertain moments are marked in red), turn off a track that is
-   not a face, or draw a box that covers an area for a span of time.
-3. **Export.** If a file has no face and you added none, Blurry asks before exporting it.
-
-Both apps remember only a few settings (sensitivity, cover, margin, language, and
-whether the guide was seen): never file names, folders or recent files. The Qt app uses its own
-file picker, because Qt's dialogs keep a list of recent folders; the Mac app uses the system's
-panels and removes what they record as soon as they close.
+Blurry remembers only a few settings (sensitivity, cover, margin, language, and whether the guide
+was seen): never file names, folders or recent files. On Windows and Linux it uses its own file
+pickers, because the system's and Qt's dialogs keep a list of recent folders; the Mac app uses
+the system's panels and removes what they record as soon as they close.
 
 ## What it does
 
@@ -152,8 +143,8 @@ system Apps; Linux provides `~/.local/opt/blurry/uninstall.sh` with the app clos
 Complete removal clears preferences and restarts onboarding after reinstallation.
 See [distribution](docs/DISTRIBUZIONE.md).
 
-**With Python:** `pipx uninstall blurry-opsec`; use Qt Settings → Uninstall → Clear
-preferences and close first if you also want to reset its preferences.
+**With Python:** `pipx uninstall blurry-opsec`. To reset the app's preferences too, first use
+Settings → Uninstall → Remove Preferences and Quit.
 
 ## Report a problem
 
@@ -162,9 +153,7 @@ Something does not work, or a face is not covered? Open an
 **without attaching photos or videos of real people**. Security vulnerabilities do not go in
 public issues: follow [SECURITY.md](SECURITY.md).
 
-The Qt app offers first-run onboarding, replayable from Guide and Settings.
-Settings includes editable defaults, manual updates in the external browser and
-uninstall. CLI invocations with arguments remain headless even with `[gui]` installed.
+With arguments, `blurry` stays a command: no window opens, even with `[gui]` installed.
 
 ## From the command line
 

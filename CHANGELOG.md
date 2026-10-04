@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+- Windows and Linux: the Qt app now works like the Mac app. Only the drop window at first;
+  then a guide takes one file at a time (sensitivity, cover, margin, sound, result) with the
+  real preview from the engine, instant sensitivity, corrections by hand on the picture, and
+  playback of the covered video. Export asks where to save, starting in the original's folder,
+  with `<name>_blurry`. View › Queue, grouped Settings, a three-page introduction and three
+  tips on the first file, as on the Mac. The old dashboard and review screens are gone.
+
 ## [0.1.2b1] — 2026-10-04 (beta)
 
 - Add Qt onboarding, replayable guide, settings, manual updates and uninstall controls.

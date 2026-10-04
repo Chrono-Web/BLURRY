@@ -10,10 +10,10 @@ import pytest
 pytest.importorskip("PySide6.QtWidgets")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import QSettings  # noqa: E402
-from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton, QTabWidget  # noqa: E402
+from PySide6.QtWidgets import QApplication, QMessageBox  # noqa: E402
 
-from blurry_opsec.gui import lifecycle  # noqa: E402
 from blurry_opsec.gui.main_window import MainWindow  # noqa: E402
+from blurry_opsec.gui.preferences import Group, PreferencesDialog  # noqa: E402
 from blurry_opsec.gui.prefs import ALLOWED_KEYS, Prefs  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,31 +26,40 @@ def test_onboarding_settings_reset_no_history(tmp_path, monkeypatch):
     prefs = Prefs()
     assert not prefs.onboarded
     window = MainWindow(prefs)
+    window.show()
     try:
-        window.show_guide(first=True)
-        window.guide_dialog.reject()
-        assert not Prefs().onboarded
-        window.show_guide(first=True)
-        window.guide_dialog.accept()
-        assert Prefs().onboarded
+        # First run: the introduction opens by itself; Esc does not close it.
+        qa.processEvents()
+        welcome = window.welcome
+        assert welcome is not None and welcome.isVisible()
+        welcome.reject()
+        assert welcome.isVisible() and not Prefs().onboarded
+        for _ in range(3):
+            welcome.next_btn.click()
+        assert not welcome.isVisible() and Prefs().onboarded
+        assert window.store.guiding  # the tips continue on the first file
+        # Help ▸ Show the Guide Again starts over; skipping ends the tips too.
+        window.restart_guide()
+        qa.processEvents()
+        assert not Prefs().onboarded and window.welcome.isVisible()
+        window.welcome.skip_btn.click()
+        assert Prefs().onboarded and not window.store.guiding
+        store = window.store
         for language in ("it", "en"):
-            window._on_language(language)
+            window.set_language(language)
             message = QMessageBox(window)
             message.setStandardButtons(QMessageBox.StandardButton.Yes)
             yes = message.button(QMessageBox.StandardButton.Yes).text().replace("&", "")
             assert yes == ("Sì" if language == "it" else "Yes")
-            dialog = lifecycle.preferences(window)
-            assert dialog.findChild(QTabWidget).count() == 3
-            window.mode_seg.set_value("pixel")
-            window._on_mode()
-            window.padding_slider.setValue(40)
-            reset = next(
-                b
-                for b in dialog.findChildren(QPushButton)
-                if b.text() in ("Ripristina valori consigliati", "Restore recommended values")
-            )
-            reset.click()
-            assert window.mode == "solid" and window.padding == 0.25
+            window.open_preferences()
+            dialog = window.preferences_dialog
+            assert isinstance(dialog, PreferencesDialog)
+            assert len(dialog.findChildren(Group)) == 6
+            store.set_mode("pixel")
+            store.set_padding(0.4)
+            assert dialog.mode.currentData() == "pixel" and dialog.margin.value() == 8
+            dialog.restore.click()
+            assert store.mode == "solid" and store.padding == 0.25
             dialog.close()
         prefs.sync()
         assert set(QSettings(str(path), QSettings.Format.IniFormat).allKeys()) <= set(ALLOWED_KEYS)
