@@ -46,14 +46,18 @@ You need Python 3.12. The simplest way is [pipx](https://pipx.pypa.io/) (or `uv 
 desktop app:
 
 ```bash
-pipx install "blurry-opsec[gui]"
+pipx install "blurry-opsec[gui] @ https://github.com/Chrono-Web/BLURRY/releases/download/v0.1.0/blurry_opsec-0.1.0-py3-none-any.whl"
 ```
 
 Command line only:
 
 ```bash
-pipx install blurry-opsec
+pipx install "https://github.com/Chrono-Web/BLURRY/releases/download/v0.1.0/blurry_opsec-0.1.0-py3-none-any.whl"
 ```
+
+Until PyPI publishing is configured, install the wheel directly from the GitHub Release.
+Once it is available on PyPI, you can use `pipx install "blurry-opsec[gui]"` or
+`pipx install blurry-opsec`.
 
 ## The app
 

@@ -3,8 +3,21 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build
+        required: true
+        type: string
+      publish_pypi:
+        description: Publish to PyPI (requires a configured Trusted Publisher)
+        default: false
+        type: boolean
 
 permissions: {}
+
+env:
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   build:
@@ -15,16 +28,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           version: "0.12.22"
           enable-cache: false
       - name: Tag matches the package version
-        run: test "v$(uv version --short)" = "${GITHUB_REF_NAME}"
+        run: test "v$(uv version --short)" = "${RELEASE_TAG}"
       - name: Build wheel and sdist
         run: uv build --no-sources
       - name: SBOM (CycloneDX)
-        run: uv export --frozen --no-dev --format cyclonedx1.5 -o "dist/blurry-opsec-${GITHUB_REF_NAME#v}.cdx.json"
+        run: uv export --frozen --no-dev --format cyclonedx1.5 -o "dist/blurry-opsec-${RELEASE_TAG#v}.cdx.json"
       - name: Smoke test the wheel, offline
         run: |
           uv venv --python 3.12 /tmp/smoke
@@ -51,12 +65,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           version: "0.12.22"
           enable-cache: false
       - name: Tag matches the package version
-        run: test "v$(uv version --short)" = "${GITHUB_REF_NAME}"
+        run: test "v$(uv version --short)" = "${RELEASE_TAG}"
       - name: Build Blurry.app and Blurry.dmg
         run: scripts/crea-dmg.sh
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -66,6 +81,8 @@ jobs:
           if-no-files-found: error
 
   pypi:
+    # Enable tag publishing with the PUBLISH_PYPI repository variable once configured.
+    if: (github.event_name == 'push' && vars.PUBLISH_PYPI == 'true') || (github.event_name == 'workflow_dispatch' && inputs.publish_pypi)
     needs: build
     runs-on: ubuntu-24.04
     environment:
@@ -85,7 +102,7 @@ jobs:
           packages-dir: pypi/
 
   github-release:
-    needs: [pypi, macos-dmg]
+    needs: [build, macos-dmg]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -109,8 +126,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: >
-          gh release create "${GITHUB_REF_NAME}" dist/*
+          gh release create "${RELEASE_TAG}" dist/*
           --repo "${GITHUB_REPOSITORY}"
-          --title "Blurry ${GITHUB_REF_NAME}"
+          --verify-tag
+          --title "Blurry ${RELEASE_TAG}"
           --notes "See CHANGELOG.md. Verify downloads with SHA256SUMS and
           gh attestation verify <file> --repo ${GITHUB_REPOSITORY}."
