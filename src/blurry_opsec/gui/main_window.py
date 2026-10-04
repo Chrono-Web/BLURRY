@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
 
 from blurry_opsec import engine, i18n, image_io, levels, video_io
 from blurry_opsec.files import InputError
-from blurry_opsec.gui import lifecycle, native, picker
+from blurry_opsec.gui import lifecycle, native, picker, translations
 from blurry_opsec.gui import model as m
 from blurry_opsec.gui.prefs import Prefs
 from blurry_opsec.gui.review import ImageReview, VideoReview
@@ -52,6 +52,7 @@ class MainWindow(QMainWindow):
         self.glass = glass  # native window material underneath (macOS)
         lang = prefs.language or ("it" if QLocale.system().name().startswith("it") else "en")
         i18n.set_language(lang)
+        translations.set_language(lang)
         self.items: list[m.Item] = []
         self.export_queue: list[m.Item] = []
         self.current: m.Item | None = None  # item the jobs worker is processing
@@ -322,6 +323,7 @@ class MainWindow(QMainWindow):
 
     def _on_language(self, code: str) -> None:
         i18n.set_language(code)
+        translations.set_language(code)
         self.prefs.language = code
         self.retranslate()
 

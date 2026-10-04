@@ -12,7 +12,7 @@ from pathlib import Path
 import av
 import numpy as np
 from PIL import Image
-from PySide6.QtWidgets import QApplication, QDialogButtonBox, QPushButton
+from PySide6.QtWidgets import QApplication, QDialogButtonBox, QMessageBox, QPushButton
 
 from blurry_opsec import i18n
 from blurry_opsec.gui.app import _contain_qt_settings
@@ -52,6 +52,11 @@ def main(fixture: str) -> int:
             window.guide_dialog.accept()
             for language in ("it", "en"):
                 window._on_language(language)
+                message = QMessageBox(window)
+                message.setStandardButtons(QMessageBox.StandardButton.Yes)
+                yes = message.button(QMessageBox.StandardButton.Yes).text().replace("&", "")
+                if yes != ("Sì" if language == "it" else "Yes"):
+                    raise RuntimeError("Qt standard button translation missing")
                 dialog = preferences(window)
                 app.processEvents()
                 if len(dialog.findChildren(QPushButton)) < 5:

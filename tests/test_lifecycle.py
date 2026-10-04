@@ -10,7 +10,7 @@ import pytest
 pytest.importorskip("PySide6.QtWidgets")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import QSettings  # noqa: E402
-from PySide6.QtWidgets import QApplication, QPushButton, QTabWidget  # noqa: E402
+from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton, QTabWidget  # noqa: E402
 
 from blurry_opsec.gui import lifecycle  # noqa: E402
 from blurry_opsec.gui.main_window import MainWindow  # noqa: E402
@@ -35,6 +35,10 @@ def test_onboarding_settings_reset_no_history(tmp_path, monkeypatch):
         assert Prefs().onboarded
         for language in ("it", "en"):
             window._on_language(language)
+            message = QMessageBox(window)
+            message.setStandardButtons(QMessageBox.StandardButton.Yes)
+            yes = message.button(QMessageBox.StandardButton.Yes).text().replace("&", "")
+            assert yes == ("Sì" if language == "it" else "Yes")
             dialog = lifecycle.preferences(window)
             assert dialog.findChild(QTabWidget).count() == 3
             window.mode_seg.set_value("pixel")

@@ -4,6 +4,7 @@ import sys
 from PyInstaller.utils.hooks import collect_data_files, copy_metadata
 ROOT = SPECPATH + "/.."
 datas = collect_data_files("blurry_opsec")
+datas += collect_data_files("PySide6", includes=["Qt/translations/qtbase_it.qm"])
 for package in ("av", "numpy", "pillow", "pi-heif", "opencv-python-headless",
                 "PySide6-Essentials", "shiboken6", "pyinstaller"):
     datas += copy_metadata(package)
