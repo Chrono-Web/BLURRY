@@ -56,6 +56,11 @@ YUNET_NMS = 0.3
 YUNET_TOPK = 5000
 
 DEFAULT_LEVEL = "high"
+# The level with the lowest threshold. Detecting once at this level and keeping
+# the boxes whose score reaches another level's threshold gives exactly what
+# detecting at that level would (YuNet applies the threshold before NMS):
+# tests/test_worker.py checks it on photos and on a video.
+MOST_SENSITIVE = min(LEVELS.values(), key=lambda lv: lv.confidence).name
 DEFAULT_MODE = "solid"
 DEFAULT_PADDING = 0.25
 MODES = ("solid", "pixel")

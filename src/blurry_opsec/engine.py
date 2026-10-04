@@ -17,7 +17,7 @@ import cv2
 
 from blurry_opsec import files, image_io, levels, redact, tracking, video_io
 from blurry_opsec.detect import FaceDetector
-from blurry_opsec.plan import NEAR_THRESHOLD, NO_FACES, SMALL_FACE, Flag, ImagePlan, VideoPlan
+from blurry_opsec.plan import NEAR_THRESHOLD, NO_FACES, SMALL_FACE, Box, Flag, ImagePlan, VideoPlan
 from blurry_opsec.watermark import Watermark
 
 # stage, done, total
@@ -66,6 +66,7 @@ class VideoJob:
     info: video_io.VideoInfo
     plan: VideoPlan
     pts: list = field(default_factory=list)  # per-frame timestamps, for seeking
+    detections: list = field(default_factory=list)  # per-frame boxes, before tracking
 
 
 @dataclass
@@ -87,6 +88,44 @@ def image_flags(plan: ImagePlan, confidence: float) -> list[Flag]:
     return flags
 
 
+def _reaches(box: Box, confidence: float) -> bool:
+    return box.score is None or box.score >= confidence  # manual boxes have no score
+
+
+def image_plan_at(plan: ImagePlan, confidence: float) -> ImagePlan:
+    """The plan another, less sensitive level would give: only the boxes whose
+    score reaches its threshold (see levels.MOST_SENSITIVE)."""
+    kept = [b for b in plan.boxes if _reaches(b, confidence)]
+    out = ImagePlan(plan.width, plan.height, kept, faces_expected=plan.faces_expected)
+    if plan.faces_expected:
+        out.flags = image_flags(out, confidence)
+    return out
+
+
+def video_plan_from(
+    detections: list[list[Box]], info: video_io.VideoInfo, faces_expected: bool, confidence: float
+) -> VideoPlan:
+    """Tracks, flags and coverage from per-frame detections, keeping only the
+    boxes whose score reaches `confidence`."""
+    fps = info.fps
+    plan = VideoPlan(
+        width=info.width,
+        height=info.height,
+        frame_count=len(detections),
+        fps=fps,
+        extend_frames=max(1, int(round(fps * 0.5))),
+        faces_expected=faces_expected,
+    )
+    if faces_expected:
+        kept = [[b for b in boxes if _reaches(b, confidence)] for boxes in detections]
+        plan.tracks = tracking.build_tracks(kept, max_gap=max(1, int(round(fps))))
+        plan.flags = tracking.track_flags(plan.tracks, confidence)
+        plan.max_simultaneous = tracking.max_simultaneous(kept)
+        if not plan.tracks:
+            plan.flags.append(Flag(NO_FACES))
+    return plan
+
+
 def analyze_image(path: Path, settings: Settings, detector: FaceDetector | None) -> ImageJob:
     loaded = image_io.load(path)
     h, w = loaded.rgb.shape[:2]
@@ -99,7 +138,17 @@ def analyze_image(path: Path, settings: Settings, detector: FaceDetector | None)
     return ImageJob(path, loaded, plan)
 
 
-def render_image(job: ImageJob, settings: Settings, out_dir: Path | None) -> Result:
+def _final(source: Path, out_dir: Path | None, output: Path | None, ext: str) -> Path:
+    if output is not None:
+        return files.chosen_output(source, output)
+    return files.output_path(source, out_dir, ext)
+
+
+def render_image(
+    job: ImageJob, settings: Settings, out_dir: Path | None, output: Path | None = None
+) -> Result:
+    """Write to `output` if given (a path the user chose), otherwise to
+    `<name>.blurry.<ext>` in out_dir or next to the source."""
     rgb = job.loaded.rgb.copy()
     alpha = None if job.loaded.alpha is None else job.loaded.alpha.copy()
     blocks = levels.get(settings.level).blocks
@@ -107,8 +156,8 @@ def render_image(job: ImageJob, settings: Settings, out_dir: Path | None) -> Res
     if settings.watermark:
         Watermark(settings.watermark).apply(rgb)
     data = image_io.encode(rgb, alpha, job.loaded.out_format)
-    final = files.output_path(job.source, out_dir, job.loaded.out_ext)
-    with files.partial_output(final) as partial, open(partial, "wb") as fh:
+    final = _final(job.source, out_dir, output, job.loaded.out_ext)
+    with files.partial_output(final, output is not None) as partial, open(partial, "wb") as fh:
         fh.write(data)
     return Result(final, "none", job.loaded.metadata_found)
 
@@ -129,22 +178,10 @@ def analyze_video(
         detections.append(detector.detect(frame) if settings.faces and detector else [])
     if count == 0:
         raise files.InputError("the video has no decodable frames")
-    fps = info.fps
-    plan = VideoPlan(
-        width=info.width,
-        height=info.height,
-        frame_count=count,
-        fps=fps,
-        extend_frames=max(1, int(round(fps * 0.5))),
-        faces_expected=settings.faces,
-    )
-    if settings.faces and detector is not None:
-        plan.tracks = tracking.build_tracks(detections, max_gap=max(1, int(round(fps))))
-        plan.flags = tracking.track_flags(plan.tracks, detector.confidence)
-        plan.max_simultaneous = tracking.max_simultaneous(detections)
-        if not plan.tracks:
-            plan.flags.append(Flag(NO_FACES))
-    return VideoJob(path, info, plan, pts)
+    faces = settings.faces and detector is not None
+    plan = video_plan_from(detections, info, faces, detector.confidence if faces else 1.0)
+    plan.faces_expected = settings.faces
+    return VideoJob(path, info, plan, pts, detections)
 
 
 def render_video(
@@ -152,6 +189,7 @@ def render_video(
     settings: Settings,
     out_dir: Path | None,
     progress: ProgressFn | None = None,
+    output: Path | None = None,
 ) -> Result:
     blocks = levels.get(settings.level).blocks
     mark = Watermark(settings.watermark) if settings.watermark else None
@@ -163,9 +201,9 @@ def render_video(
             mark.apply(frame)
         return frame
 
-    final = files.output_path(job.source, out_dir, "mp4")
+    final = _final(job.source, out_dir, output, "mp4")
     report = (lambda d, t: progress("rendering", d, t)) if progress else None
-    with files.partial_output(final) as partial:
+    with files.partial_output(final, output is not None) as partial:
         wrote_audio = video_io.render(
             job.source, partial, plan.frame_count, process, settings.keep_audio, report
         )

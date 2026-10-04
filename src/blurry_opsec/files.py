@@ -58,6 +58,16 @@ def output_path(src: Path, out_dir: Path | None, ext: str) -> Path:
     return candidate
 
 
+def chosen_output(src: Path, final: Path) -> Path:
+    """An output path the user chose in a save dialog (which has already asked
+    before replacing an existing file). Never the source itself."""
+    if not final.parent.is_dir():
+        raise InputError("output folder does not exist")
+    if _same_file(final, src):
+        raise InputError("output would overwrite the input")
+    return final
+
+
 def _same_file(a: Path, b: Path) -> bool:
     try:
         return a.resolve() == b.resolve() or (a.exists() and os.path.samefile(a, b))
@@ -66,9 +76,10 @@ def _same_file(a: Path, b: Path) -> bool:
 
 
 @contextlib.contextmanager
-def partial_output(final: Path) -> Iterator[Path]:
+def partial_output(final: Path, replace: bool = False) -> Iterator[Path]:
     """Yield a private partial path in the destination folder; on success it is
-    renamed to `final`, on any failure it is removed."""
+    renamed to `final`, on any failure it is removed. An existing `final` is
+    replaced only with `replace` (the user confirmed it in a save dialog)."""
     partial = final.with_name(f".{final.name}{PARTIAL_SUFFIX}")
     with contextlib.suppress(FileNotFoundError):
         partial.unlink()  # stale leftover of a crash with the same name
@@ -76,7 +87,7 @@ def partial_output(final: Path) -> Iterator[Path]:
     os.close(fd)
     try:
         yield partial
-        if final.exists() or final.is_symlink():
+        if not replace and (final.exists() or final.is_symlink()):
             raise InputError("output name was taken while processing")
         os.replace(partial, final)
     except BaseException:

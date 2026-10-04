@@ -12,3 +12,7 @@ dist/
 *.egg-info/
 *.blurry-partial
 .DS_Store
+
+# macOS app (SwiftPM)
+macos/.build/
+macos/.swiftpm/

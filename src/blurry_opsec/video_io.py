@@ -198,6 +198,28 @@ def iter_frames(
                 progress(index + 1, total)
 
 
+def iter_from(path: Path, start: int, pts: list | None = None) -> Iterator[tuple[int, np.ndarray]]:
+    """(index, BGR frame) from frame `start` to the end, in display orientation.
+    With the timestamps recorded during analysis it seeks to the nearest
+    keyframe; without them it decodes from the start and skips."""
+    target = pts[start] if pts and 0 <= start < len(pts) else None
+    with open_input(path) as container:
+        video, _ = _main_streams(container, keep_audio=False)
+        video.thread_type = "AUTO"
+        if target is None:
+            for index, frame in enumerate(container.decode(video)):
+                if index >= start:
+                    yield index, _rotate(frame)
+            return
+        container.seek(target, stream=video, backward=True, any_frame=False)
+        index = start
+        for frame in container.decode(video):
+            if frame.pts is not None and frame.pts < target:
+                continue
+            yield index, _rotate(frame)
+            index += 1
+
+
 def frame_at(path: Path, index: int) -> np.ndarray:
     for i, arr in enumerate(iter_frames(path)):
         if i == index:
