@@ -1,6 +1,6 @@
 # Distribuzione desktop e verifiche
 
-Aggiornato: 2026-10-04. Versione sorgente preparata: **0.1.2**, non pubblicata.
+Aggiornato: 2026-10-04. Versione **0.1.2b1**, pubblicata come pre-release (beta) su GitHub il 2026-10-04.
 La richiesta estende i pacchetti pronti oltre macOS.
 Python rimane pienamente supportato: vedi [contratto CLI](CLI_CONTRACT.md).
 
@@ -79,10 +79,10 @@ interattiva su Windows 11 e Ubuntu con desktop reali.
 Il workflow release riusa lo stesso job sul tag, mantiene wheel/sdist, SBOM e DMG,
 e aggiunge gli installer, SBOM con Qt, SHA256SUMS complessivo e attestazioni GitHub.
 La pubblicazione GitHub è bloccata se uno dei build/test dei pacchetti fallisce.
-I workflow CI sono stati eseguiti e hanno generato i pacchetti; nessuna release è
-stata pubblicata. Gli artefatti verificati sono scaricabili dai run della
-[PR #2](https://github.com/Chrono-Web/BLURRY/pull/2). I link `releases/latest` ai
-nuovi installer saranno validi solo dopo la pubblicazione di una release.
+I pacchetti Windows e Linux sono pubblicati nella pre-release
+[v0.1.2b1](https://github.com/Chrono-Web/BLURRY/releases/tag/v0.1.2b1). Un tag con
+suffisso PEP 440 (`a`, `b`, `rc`) diventa una pre-release GitHub e non diventa «Latest»:
+i link `releases/latest` continuano a puntare all'ultima versione stabile.
 La CI attesta i pacchetti dei branch interni dopo i test; le PR da fork non
 richiedono permessi di attestazione. Il workflow release attesta anche l’insieme
 completo di file pubblicati.

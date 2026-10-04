@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/Chrono-Web/BLURRY/releases/latest/download/Blurry.dmg"><b>⬇ Download for Mac</b></a>
   &nbsp;·&nbsp;
-  <a href="#windows-and-linux"><b>Windows and Linux</b></a>
+  <a href="#windows-and-linux-beta"><b>Windows and Linux (beta)</b></a>
   <br>
   <sub>Version 0.1.1 · Mac with Apple Silicon, macOS 14+ · free and open source (MIT)</sub>
   <br>
@@ -40,16 +40,21 @@ Apple Silicon (M1 or later), macOS 14 or later.
    Open System Settings › Privacy & Security, scroll down and click **Open Anyway** next to
    Blurry. You only do this once.
 
-### Windows and Linux
+### Windows and Linux (beta)
 
-The new formats are a per-user Windows 11 x64 installer and an archive with a
-per-user installer for Ubuntu 24.04 x86-64. They bundle Python, Qt, the model and
-processing dependencies. Native packages are built and tested in CI and available as artifacts in the
-checks of [PR #2](https://github.com/Chrono-Web/BLURRY/pull/2), ahead of publication
-on [Releases](https://github.com/Chrono-Web/BLURRY/releases). Interactive testing
-on real desktop systems remains outstanding.
-See [distribution and verification status](docs/DISTRIBUZIONE.md) for system libraries,
-installation, uninstall and the exact tests still outstanding.
+Ready-made packages are in **beta**: download them from the
+[v0.1.2b1 pre-release](https://github.com/Chrono-Web/BLURRY/releases/tag/v0.1.2b1).
+
+- **Windows 11 x64:** `Blurry-0.1.2b1-windows-x64-setup.exe`. Run it; it installs for your user
+  only, no administrator needed. Blurry is not signed, so SmartScreen warns the first time:
+  choose **More info › Run anyway**.
+- **Ubuntu 24.04 x86-64:** `Blurry-0.1.2b1-linux-x86_64.tar.gz`. Extract it and run
+  `sh install.sh` inside the `Blurry-linux` folder.
+
+Python, Qt and the model are included. It is a beta: it has not yet been tested on real
+Windows and Linux desktops, so check every result before sharing it, and report problems in the
+[Issues](https://github.com/Chrono-Web/BLURRY/issues). System libraries, uninstalling and
+the open checks are in [desktop distribution](docs/DISTRIBUZIONE.md).
 
 ### With Python (engine, servers, containers, CLI and optional Qt)
 

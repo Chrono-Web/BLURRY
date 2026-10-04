@@ -51,7 +51,7 @@ struct WelcomeView: View {
             }
         }
         .padding(30)
-        .frame(width: 500, height: 520)
+        .frame(width: 500, height: 420)
         .background(WindowMaterial())
         .tint(accent)
         .preferredColorScheme(.dark)

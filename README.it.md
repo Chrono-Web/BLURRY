@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/Chrono-Web/BLURRY/releases/latest/download/Blurry.dmg"><b>⬇ Scarica per Mac</b></a>
   &nbsp;·&nbsp;
-  <a href="#windows-e-linux"><b>Windows e Linux</b></a>
+  <a href="#windows-e-linux-beta"><b>Windows e Linux (beta)</b></a>
   <br>
   <sub>Versione 0.1.1 · Mac con Apple Silicon, macOS 14+ · gratuito e open source (MIT)</sub>
   <br>
@@ -40,16 +40,21 @@ Apple Silicon (M1 o successivi), macOS 14 o successivo.
    Apple. Apri Impostazioni di Sistema › Privacy e sicurezza, scorri in fondo e premi **Apri
    comunque** accanto a Blurry. Serve una volta sola.
 
-### Windows e Linux
+### Windows e Linux (beta)
 
-I formati previsti sono un installer Windows 11 x64 e un archivio con installer per
-utente per Ubuntu 24.04 x86-64. Includono Python, Qt, modello e dipendenze: non serve
-installare Python. I nuovi pacchetti sono costruiti e testati in CI; sono disponibili come artefatti
-nei check della [PR #2](https://github.com/Chrono-Web/BLURRY/pull/2), prima della
-pubblicazione sulle [Release](https://github.com/Chrono-Web/BLURRY/releases).
-Le prove interattive sui desktop reali rimangono da completare.
-Formati, installazione, librerie di sistema e verifiche sono documentati in
-[Distribuzione desktop](docs/DISTRIBUZIONE.md).
+I pacchetti pronti sono in **beta**: si scaricano dalla
+[pre-release v0.1.2b1](https://github.com/Chrono-Web/BLURRY/releases/tag/v0.1.2b1).
+
+- **Windows 11 x64:** `Blurry-0.1.2b1-windows-x64-setup.exe`. Aprilo: installa solo per il tuo
+  utente, senza amministratore. Blurry non è firmato, quindi la prima volta SmartScreen avvisa:
+  scegli **Ulteriori informazioni › Esegui comunque**.
+- **Ubuntu 24.04 x86-64:** `Blurry-0.1.2b1-linux-x86_64.tar.gz`. Estrailo e lancia
+  `sh install.sh` dentro la cartella `Blurry-linux`.
+
+Python, Qt e il modello sono inclusi. È una beta: non è ancora stata provata su desktop Windows
+e Linux reali, quindi controlla ogni risultato prima di condividerlo e segnala i problemi nelle
+[Issues](https://github.com/Chrono-Web/BLURRY/issues). Librerie di sistema, disinstallazione e
+verifiche ancora aperte sono in [Distribuzione desktop](docs/DISTRIBUZIONE.md).
 
 ### Con Python (motore, server, container, CLI e Qt facoltativa)
 

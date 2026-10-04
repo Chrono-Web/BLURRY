@@ -1,6 +1,6 @@
 # Verifica interattiva prima della pubblicazione
 
-Aggiornato: 2026-10-04. Versione candidata: 0.1.2, non pubblicata.
+Aggiornato: 2026-10-04. Versione in prova: 0.1.2b1, pubblicata come beta.
 Sistemi supportati, dipendenze e risultati automatici vivono in
 [DISTRIBUZIONE.md](DISTRIBUZIONE.md). Questa procedura serve per le prove mancanti.
 
@@ -14,7 +14,7 @@ un runtime headless per il backend Chrono, collaudato su una foto pubblica prima
 deploy. Questa prova non verifica GUI o installer Linux e non usa container.
 Vedi anche il documento operativo in SITO/BACKEND/docs/BLURRY.md.
 
-Scaricare i pacchetti del commit candidato dalla PR #2 e verificare il checksum
+Scaricare i pacchetti dalla pre-release v0.1.2b1 e verificare il checksum
 prima di installarli. Conservare commit, versione, checksum, versione del sistema
 e tipo di sessione nel verbale. Usare immagini pubbliche o sintetiche e un breve
 video sintetico; evitare dati personali nelle schermate o nelle segnalazioni.
