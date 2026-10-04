@@ -7,17 +7,17 @@ struct WelcomeView: View {
     @State private var page = 0
 
     var body: some View {
-        VStack(spacing: 22) {
+        VStack(spacing: 18) {
+            // Blurry stays still at the top, centred; only the text below changes.
+            MascotView(nudge: page)
+                .frame(width: 88, height: 88)
             HStack(spacing: 8) {
                 ForEach(0..<3) { index in
                     Capsule().fill(index == page ? accent : Color.white.opacity(0.15))
                         .frame(width: index == page ? 28 : 8, height: 5)
                 }
-                Spacer()
-                Text("Blurry").font(.headline).foregroundStyle(.secondary)
             }
-            VStack(alignment: .leading, spacing: 18) {
-                Image(systemName: symbol).font(.system(size: 36, weight: .light)).foregroundStyle(accent)
+            VStack(spacing: 14) {
                 Text(title).font(.title2.weight(.semibold))
                 if page == 0 {
                     Text(L.welcomeSubtitle).font(.title3)
@@ -26,16 +26,18 @@ struct WelcomeView: View {
                     Text(L.welcomeSafety)
                     Text(L.welcomeLimits).foregroundStyle(.secondary)
                 } else {
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 12) {
                         row("1", L.welcomeDrop)
                         row("2", L.welcomeReview)
                         row("3", L.welcomeExport)
                     }
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
                     Text(L.welcomeOriginal).font(.callout).foregroundStyle(.secondary)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .fixedSize(horizontal: false, vertical: false)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             HStack(spacing: 14) {
                 Button(L.tipSkip) { store.finishOnboarding() }
                     .buttonStyle(.borderless).foregroundStyle(.secondary)
@@ -49,7 +51,7 @@ struct WelcomeView: View {
             }
         }
         .padding(30)
-        .frame(width: 500, height: 460)
+        .frame(width: 500, height: 520)
         .background(WindowMaterial())
         .tint(accent)
         .preferredColorScheme(.dark)
@@ -60,14 +62,6 @@ struct WelcomeView: View {
         case 0: L.welcomeTitle
         case 1: L.welcomeSafetyTitle
         default: L.welcomeWorkflowTitle
-        }
-    }
-
-    private var symbol: String {
-        switch page {
-        case 0: "hand.raised"
-        case 1: "viewfinder"
-        default: "photo.on.rectangle.angled"
         }
     }
 
