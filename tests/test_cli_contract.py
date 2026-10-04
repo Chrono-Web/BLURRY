@@ -132,3 +132,19 @@ def test_gui_script_with_arguments_is_also_headless():
     )
     assert result.returncode == 0
     assert result.stdout.startswith("blurry ") and "qt.qpa" not in result.stderr
+
+
+def test_json_reports_are_utf8_with_legacy_windows_encoding(tmp_path):
+    source = tmp_path / "foto è 日本.png"
+    Image.new("RGB", (100, 100)).save(source)
+    result = subprocess.run(
+        [sys.executable, "-m", "blurry_opsec", "--json", "--no-faces", str(source)],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=120,
+        env={**os.environ, "PYTHONIOENCODING": "cp1252"},
+    )
+    assert result.returncode == 0, result.stderr
+    assert reports(result)[0]["output"] == "foto è 日本.blurry.png"

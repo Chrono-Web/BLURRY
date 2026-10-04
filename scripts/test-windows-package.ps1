@@ -1,8 +1,12 @@
 $ErrorActionPreference = 'Stop'
 $package = (Get-ChildItem build/desktop-packages/*-setup.exe).FullName
-$app = Join-Path $env:TEMP ('Blurry-package-' + [guid]::NewGuid())
+$app = Join-Path $env:TEMP ('Blurry prova è 日本-' + [guid]::NewGuid())
 $prefs = 'HKCU:\Software\chronocol.com\blurry'
 $env:QT_QPA_PLATFORM = 'offscreen'
+# Installed programs must resolve their own runtime, independent of developer tools.
+$env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+Remove-Item Env:PYTHONHOME, Env:PYTHONPATH, Env:VIRTUAL_ENV -ErrorAction SilentlyContinue
+$env:PYTHONIOENCODING = 'cp1252'
 function Install-Blurry {
     $p = Start-Process -FilePath $package -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=`"$app`"") -Wait -PassThru
     if ($p.ExitCode -ne 0) { throw "Installer failed: $($p.ExitCode)" }

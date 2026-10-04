@@ -25,6 +25,7 @@ blurry --json --strict --level high -o /work/output -- /work/input.jpg
 
 ## Stdout: JSON Lines
 
+Le pipe di CLI e worker usano UTF-8, anche con code page Windows legacy.
 Con `--json`, una riga JSON per input, nell’ordine degli argomenti, immediatamente
 flushed. Niente testo di avanzamento su stdout. Il consumer deve accumulare i chunk
 fino a newline e accettare campi aggiuntivi. Non cercare un singolo JSON nell’intero stream.

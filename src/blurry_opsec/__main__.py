@@ -37,6 +37,10 @@ def gui_main(argv: list[str] | None = None) -> int:
 def main(argv: list[str] | None = None) -> int:
     from blurry_opsec import tempfiles
 
+    # Pipe contracts are UTF-8 even under a legacy Windows ANSI code page.
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        if stream is not None and hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     args = sys.argv[1:] if argv is None else argv
     if args[:1] == [WORKER_ARG]:
         from blurry_opsec import worker

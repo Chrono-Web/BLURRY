@@ -23,7 +23,7 @@ from blurry_opsec.plan import Box
 
 
 def main(fixture: str) -> int:
-    with tempfile.TemporaryDirectory(prefix="blurry-smoke-") as folder:
+    with tempfile.TemporaryDirectory(prefix="blurry-smoke-è-日本-") as folder:
         root = Path(folder)
         os.environ["BLURRY_PREFS_INI"] = str(root / "preferences.ini")
         _contain_qt_settings()
@@ -57,7 +57,7 @@ def main(fixture: str) -> int:
                 if len(dialog.findChildren(QPushButton)) < 5:
                     raise RuntimeError("Missing lifecycle controls")
                 dialog.close()
-            source = root / "original.jpg"
+            source = root / "original è 日本.jpg"
             shutil.copyfile(fixture, source)
             before = hashlib.sha256(source.read_bytes()).digest()
             window.add_paths([source])
