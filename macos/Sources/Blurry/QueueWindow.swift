@@ -2,6 +2,7 @@ import SwiftUI
 
 /// View ▸ Queue: every file of this session, as a list. Double-click opens a
 /// file in the guide; the Finder button shows it (the export, once there is one).
+@MainActor
 struct QueueWindow: View {
     @Environment(Store.self) private var store
     @Environment(\.openWindow) private var openWindow
@@ -41,6 +42,7 @@ struct QueueWindow: View {
     }
 }
 
+@MainActor
 struct QueueRow: View {
     let item: Item
     let current: Bool

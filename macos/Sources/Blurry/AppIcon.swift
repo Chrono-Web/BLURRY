@@ -3,6 +3,7 @@ import SwiftUI
 /// The app icon, 1024 × 1024, drawn in code like Globy's: a dark tile with
 /// macOS corners and, in the middle, a face made of pixel blocks (what Blurry
 /// does to faces), inside the green corner ticks of the drop window. Rendered with `--render-icon` (Debug only).
+@MainActor
 struct AppIconArt: View {
     private static let corner: CGFloat = 186
 
@@ -29,6 +30,7 @@ struct AppIconArt: View {
 
 /// The pixelated face. Blocks are grey, lighter towards the top left as if
 /// lit from there, with a fixed pseudo-random variation so it reads as a mosaic.
+@MainActor
 private struct Mosaic: View {
     var body: some View {
         Canvas { ctx, size in

@@ -8,6 +8,7 @@ func clock(_ frame: Int, fps: Double) -> String {
 /// The boxes over the picture, in edit mode. One drag gesture does everything:
 /// starting on a corner of the selected box resizes it, on a box moves it (if
 /// it can move), elsewhere draws a new one. A click selects.
+@MainActor
 struct BoxEditor: View {
     @Environment(Store.self) private var store
     let planSize: CGSize
@@ -129,6 +130,7 @@ struct BoxEditor: View {
 /// One box: green found, orange uncertain, white drawn by hand, grey dashed when
 /// its track is off. The selected one is thicker, with corner handles if it can
 /// be resized.
+@MainActor
 struct BoxShape: View {
     let box: EditBox
     let rect: CGRect
@@ -165,6 +167,7 @@ struct BoxShape: View {
 
 /// Below the picture, in edit mode: what to do, the video timeline, the
 /// actions for the selected box, and Cancel / Done.
+@MainActor
 struct EditPanel: View {
     @Environment(Store.self) private var store
     let item: Item

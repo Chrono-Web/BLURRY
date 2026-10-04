@@ -5,6 +5,7 @@ import SwiftUI
 /// popover by clicking elsewhere counts as "got it".
 /// No TipKit: it keeps a datastore in Application Support, and R2 wants that
 /// folder not to exist.
+@MainActor
 struct TipContent: View {
     @Environment(Store.self) private var store
     let text: String
@@ -42,6 +43,7 @@ extension View {
     }
 }
 
+@MainActor
 private struct GuideTip: ViewModifier {
     @Environment(Store.self) private var store
     let tip: Store.Tip

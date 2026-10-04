@@ -34,6 +34,7 @@ struct CornerTicks: Shape {
 }
 
 /// The drop frame: corner ticks, and green while something is dragged over it.
+@MainActor
 struct DropFrame: View {
     let active: Bool
 
@@ -53,6 +54,7 @@ struct DropFrame: View {
 }
 
 /// Chrono's small monospace capitals, for section labels.
+@MainActor
 struct SectionLabel: View {
     let text: String
 
@@ -81,6 +83,7 @@ struct PrimaryButtonStyle: ButtonStyle {
     }
 }
 
+@MainActor
 struct ContentView: View {
     @Environment(Store.self) private var store
     @Binding var choosing: Bool

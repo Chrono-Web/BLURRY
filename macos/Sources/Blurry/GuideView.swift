@@ -6,6 +6,7 @@ import SwiftUI
 /// Navigation follows the HIG for assistants: Back and Continue side by side at
 /// the bottom right (Return continues, ⌘[ goes back, Esc does nothing); the
 /// step bar can be clicked; the steps are fixed from the start.
+@MainActor
 struct GuideView: View {
     @Environment(Store.self) private var store
     @Environment(\.openWindow) private var openWindow
@@ -245,6 +246,7 @@ struct GuideView: View {
 
 /// The file, lifted off the window: the original while choosing the
 /// sensitivity (faces outlined in green), then covered as the export will be.
+@MainActor
 struct FloatingPicture: View {
     @Environment(Store.self) private var store
     let item: Item
@@ -339,6 +341,7 @@ struct FloatingPicture: View {
 
 /// Video, last step: play/pause (space), a timeline to drag with the covered
 /// stretches marked in green, and the time.
+@MainActor
 struct PlayerBar: View {
     @Environment(Store.self) private var store
     let item: Item
@@ -374,6 +377,7 @@ struct PlayerBar: View {
     }
 }
 
+@MainActor
 struct Timeline: View {
     let frameCount: Int
     let ranges: [ClosedRange<Int>]
@@ -412,6 +416,7 @@ struct Timeline: View {
 
 /// Where you are in the guide: done steps green, the current one white. Every
 /// step can be clicked; a video's audio step is dimmed when it has no sound.
+@MainActor
 struct StepBar: View {
     @Environment(Store.self) private var store
     let locked: Bool
@@ -444,6 +449,7 @@ struct StepBar: View {
 }
 
 /// One choice in a step: a card, green when chosen.
+@MainActor
 struct OptionCard: View {
     let title: String
     let hint: String

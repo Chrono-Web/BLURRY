@@ -72,6 +72,7 @@ struct BlurryApp: App {
 }
 
 /// View ▸ Queue (⌘L).
+@MainActor
 struct QueueCommand: View {
     @Environment(\.openWindow) private var openWindow
 
