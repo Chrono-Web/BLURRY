@@ -5,8 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QLocale, QSize, Qt, QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import QLocale, QSize, Qt
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
@@ -23,8 +22,8 @@ from PySide6.QtWidgets import (
 
 from blurry_opsec import engine, i18n, image_io, levels, video_io
 from blurry_opsec.files import InputError
+from blurry_opsec.gui import lifecycle, native, picker, translations
 from blurry_opsec.gui import model as m
-from blurry_opsec.gui import native, picker
 from blurry_opsec.gui.prefs import Prefs
 from blurry_opsec.gui.review import ImageReview, VideoReview
 from blurry_opsec.gui.widgets import (
@@ -41,7 +40,6 @@ from blurry_opsec.gui.worker_client import WorkerClient
 from blurry_opsec.i18n import t
 from blurry_opsec.plan import plan_from_dict, plan_to_dict
 
-RELEASES_URL = "https://github.com/Chrono-Web/BLURRY/releases"
 ACCEPTED = sorted(image_io.IMAGE_EXTENSIONS | video_io.VIDEO_EXTENSIONS)
 WINDOW_TITLE = "Blurry"  # never a file name (R2)
 IS_MAC = sys.platform == "darwin"
@@ -54,6 +52,7 @@ class MainWindow(QMainWindow):
         self.glass = glass  # native window material underneath (macOS)
         lang = prefs.language or ("it" if QLocale.system().name().startswith("it") else "en")
         i18n.set_language(lang)
+        translations.set_language(lang)
         self.items: list[m.Item] = []
         self.export_queue: list[m.Item] = []
         self.current: m.Item | None = None  # item the jobs worker is processing
@@ -91,6 +90,12 @@ class MainWindow(QMainWindow):
         self.retranslate()
         self.refresh_queue()
 
+    def show_guide(self, first: bool = False) -> None:
+        self.guide_dialog = lifecycle.guide(self, first)
+
+    def show_preferences(self) -> None:
+        self.preferences_dialog = lifecycle.preferences(self)
+
     # -- layout ------------------------------------------------------------------
     def _build_header(self) -> QWidget:
         bar = DragArea()
@@ -113,7 +118,11 @@ class MainWindow(QMainWindow):
         h.addWidget(self.lang_seg)
         self.updates_btn = QPushButton()
         self.updates_btn.setObjectName("link")
-        self.updates_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(RELEASES_URL)))
+        self.updates_btn.clicked.connect(self.show_preferences)
+        self.guide_btn = QPushButton()
+        self.guide_btn.setObjectName("link")
+        self.guide_btn.clicked.connect(self.show_guide)
+        h.addWidget(self.guide_btn)
         h.addWidget(self.updates_btn)
         return bar
 
@@ -256,8 +265,11 @@ class MainWindow(QMainWindow):
         self.lang_seg.set_value(i18n.language())
         self.chip.setText("●  " + t("offline"))
         self.tagline.setText(t("tagline"))
-        self.updates_btn.setText(t("updates"))
-        self.updates_btn.setToolTip(t("updates_tip"))
+        self.updates_btn.setText(t("settings"))
+        self.guide_btn.setText(lifecycle.text("Guida", "Guide"))
+        self.updates_btn.setToolTip(
+            lifecycle.text("Impostazioni e aggiornamenti manuali", "Settings and manual updates")
+        )
         self.drop_title.setText(t("drop_title"))
         self.drop_formats.setText(t("drop_formats").upper())
         self.choose_btn.setText(t("choose_files"))
@@ -311,6 +323,7 @@ class MainWindow(QMainWindow):
 
     def _on_language(self, code: str) -> None:
         i18n.set_language(code)
+        translations.set_language(code)
         self.prefs.language = code
         self.retranslate()
 

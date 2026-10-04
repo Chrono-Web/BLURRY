@@ -1,6 +1,7 @@
 """The app's worker process: JSON over pipes, plans edited by the user, cancel."""
 
 import json
+import os
 import subprocess
 import sys
 import threading
@@ -16,16 +17,17 @@ from blurry_opsec.plan import Box, plan_from_dict, plan_to_dict
 
 
 class Worker:
-    def __init__(self):
+    def __init__(self, env=None):
         self.p = subprocess.Popen(
             [sys.executable, "-m", "blurry_opsec", "__worker"],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1,
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, encoding="utf-8",
+            bufsize=1, env=env,
         )  # fmt: skip
         assert json.loads(self.p.stdout.readline())["event"] == "ready"
         self.n = 0
 
     def send(self, msg):
-        self.p.stdin.write(json.dumps(msg) + "\n")
+        self.p.stdin.write(json.dumps(msg, ensure_ascii=False) + "\n")
         self.p.stdin.flush()
 
     def call(self, cmd, on_progress=None, **payload):
@@ -234,3 +236,19 @@ def test_edit_preview_lists_boxes_with_owners(worker, clip):
     res = worker.call("preview", path=str(clip), plan=plan_to_dict(vplan), settings={}, index=40,
                       edit=True)  # fmt: skip
     assert not [b for b in res["boxes"] if "manual" in b]
+
+
+def test_utf8_wire_protocol_with_legacy_windows_encoding(tmp_path):
+    source = tmp_path / "foto è 日本.jpg"
+    source.write_bytes((PUBLIC / "dental_squadron.jpg").read_bytes())
+    w = Worker(env={**os.environ, "PYTHONIOENCODING": "cp1252"})
+    try:
+        result = w.call("analyze", path=str(source), settings={})
+        assert result["event"] == "result" and result["kind"] == "image"
+        result = w.call(
+            "render", path=str(source), plan=result["plan"], settings={}, out_dir=str(tmp_path)
+        )
+        assert result["event"] == "result"
+        assert result["output_name"] == "foto è 日本.blurry.jpg"
+    finally:
+        w.close()

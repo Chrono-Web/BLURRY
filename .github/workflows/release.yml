@@ -20,6 +20,15 @@ env:
   RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
+  desktop-packages:
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    uses: ./.github/workflows/desktop.yml
+    with:
+      ref: refs/tags/${{ inputs.tag || github.ref_name }}
+
   build:
     runs-on: ubuntu-24.04
     permissions:
@@ -74,6 +83,8 @@ jobs:
         run: test "v$(uv version --short)" = "${RELEASE_TAG}"
       - name: Build Blurry.app and Blurry.dmg
         run: scripts/crea-dmg.sh
+      - name: Verify the packaged macOS app and engine
+        run: scripts/verifica-dmg.sh build/Blurry.dmg "${RELEASE_TAG#v}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dmg
@@ -103,7 +114,7 @@ jobs:
           skip-existing: true
 
   github-release:
-    needs: [build, macos-dmg]
+    needs: [build, macos-dmg, desktop-packages]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -118,7 +129,12 @@ jobs:
         with:
           name: dmg
           path: dist/
-      - name: Checksums, the .dmg included
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: dist/
+      - name: Checksums, all desktop packages included
         run: cd dist && rm -f SHA256SUMS && sha256sum -- * > SHA256SUMS && cat SHA256SUMS
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
