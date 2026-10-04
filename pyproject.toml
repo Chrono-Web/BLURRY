@@ -1,6 +1,6 @@
 [project]
 name = "blurry-opsec"
-version = "0.1.2"
+version = "0.1.2b1"
 description = "Cover faces and strip metadata from photos and videos, locally and offline."
 readme = "README.md"
 license = "MIT"

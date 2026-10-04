@@ -147,7 +147,12 @@ jobs:
             echo "Release ${RELEASE_TAG} already exists; keeping its published assets."
             exit 0
           fi
-          gh release create "${RELEASE_TAG}" dist/* \
+          # PEP 440 pre-releases (v0.1.2b1, v0.2.0rc1) become GitHub pre-releases, never "Latest".
+          prerelease=()
+          if [[ "${RELEASE_TAG}" =~ (a|b|rc)[0-9]+$ ]]; then
+            prerelease=(--prerelease --latest=false)
+          fi
+          gh release create "${RELEASE_TAG}" dist/* "${prerelease[@]}" \
             --repo "${GITHUB_REPOSITORY}" \
             --verify-tag \
             --title "Blurry ${RELEASE_TAG}" \
