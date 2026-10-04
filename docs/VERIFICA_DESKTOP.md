@@ -9,8 +9,10 @@ Sistemi supportati, dipendenze e risultati automatici vivono in
 Usare un account di prova su Windows 11 x64 e Ubuntu 24.04 desktop x86-64,
 senza Python installato. Su Ubuntu ripetere la sessione su X11 e Wayland.
 Non usare la VPS `ssh chrono`: è Debian 12 senza desktop e ospita servizi condivisi;
-in questa sessione sono state eseguite soltanto letture del sistema e delle risorse.
-Non sono stati copiati file, installati pacchetti o avviati container sulla VPS.
+il collaudo desktop richiede una macchina diversa. Il 2026-10-04 è stato preparato
+un runtime headless per il backend Chrono, collaudato su una foto pubblica prima del
+deploy. Questa prova non verifica GUI o installer Linux e non usa container.
+Vedi anche il documento operativo in SITO/BACKEND/docs/BLURRY.md.
 
 Scaricare i pacchetti del commit candidato dalla PR #2 e verificare il checksum
 prima di installarli. Conservare commit, versione, checksum, versione del sistema
