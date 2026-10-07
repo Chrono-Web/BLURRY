@@ -1,0 +1,8 @@
+# Only for scripts/coreml/prova-yunet.sh: never shipped, never in uv.lock.
+# torch 2.7 is the newest version coremltools 9 is tested with; torchvision must match it.
+# Licences: coremltools BSD-3, torch BSD-3, torchvision BSD-3, onnx Apache-2.0, onnx2torch Apache-2.0.
+coremltools==9.0
+torch==2.7.0
+torchvision==0.22.0
+onnx==1.23.2
+onnx2torch==1.5.15
