@@ -16,3 +16,7 @@ dist/
 # macOS app (SwiftPM)
 macos/.build/
 macos/.swiftpm/
+
+# iOS engine (SwiftPM)
+ios/BlurryKit/.build/
+ios/BlurryKit/.swiftpm/

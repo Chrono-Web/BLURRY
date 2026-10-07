@@ -3,3 +3,6 @@
 tests/fixtures/private
 dist
 **/__pycache__
+macos/.build
+ios/BlurryKit/.build
+build

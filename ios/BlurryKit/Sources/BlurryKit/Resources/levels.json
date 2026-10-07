@@ -1,0 +1,56 @@
+{
+  "_generated": "scripts/coreml/levels_json.py from src/blurry_opsec/levels.py: do not edit",
+  "levels": [
+    {
+      "name": "base",
+      "confidence": 0.7,
+      "blocks": 8,
+      "label": {
+        "it": "Leggero",
+        "en": "Light"
+      },
+      "description": {
+        "it": "Solo volti evidenti e frontali",
+        "en": "Only clear, frontal faces"
+      }
+    },
+    {
+      "name": "medium",
+      "confidence": 0.6,
+      "blocks": 6,
+      "label": {
+        "it": "Standard",
+        "en": "Standard"
+      },
+      "description": {
+        "it": "Bilanciato per la maggior parte dei casi",
+        "en": "Balanced for most cases"
+      }
+    },
+    {
+      "name": "high",
+      "confidence": 0.5,
+      "blocks": 4,
+      "label": {
+        "it": "Aggressivo",
+        "en": "Aggressive"
+      },
+      "description": {
+        "it": "Cattura anche volti piccoli o parzialmente nascosti",
+        "en": "Also catches small or partly hidden faces"
+      }
+    }
+  ],
+  "default_level": "high",
+  "most_sensitive": "high",
+  "default_mode": "solid",
+  "default_padding": 0.25,
+  "modes": [
+    "solid",
+    "pixel"
+  ],
+  "yunet_nms": 0.3,
+  "yunet_topk": 5000,
+  "near_threshold_margin": 0.1,
+  "small_face_px": 32
+}
