@@ -17,6 +17,8 @@ dist/
 macos/.build/
 macos/.swiftpm/
 
-# iOS engine (SwiftPM)
+# iOS engine (SwiftPM) and app (Xcode)
 ios/BlurryKit/.build/
 ios/BlurryKit/.swiftpm/
+ios/Blurry.xcodeproj/xcuserdata/
+ios/Blurry.xcodeproj/project.xcworkspace/xcuserdata/

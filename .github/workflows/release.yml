@@ -91,6 +91,34 @@ jobs:
           path: build/Blurry.dmg
           if-no-files-found: error
 
+  # The iOS app, unsigned: AltStore or SideStore sign it with the Apple ID of
+  # whoever installs it (scripts/crea-ipa.sh, the same script used locally).
+  ios-ipa:
+    runs-on: macos-15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.22"
+          enable-cache: false
+      - name: Tag matches the package version
+        run: test "v$(uv version --short)" = "${RELEASE_TAG}"
+      - name: Xcode 16.4
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app && xcodebuild -version
+      - run: uv sync --frozen
+      - name: Build the unsigned Blurry.ipa
+        run: scripts/crea-ipa.sh && cp "build/Blurry-${RELEASE_TAG#v}.ipa" build/Blurry.ipa
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ipa
+          path: build/Blurry.ipa
+          if-no-files-found: error
+
   pypi:
     # Enable tag publishing with the PUBLISH_PYPI repository variable once configured.
     if: (github.event_name == 'push' && vars.PUBLISH_PYPI == 'true') || (github.event_name == 'workflow_dispatch' && inputs.publish_pypi)
@@ -114,7 +142,7 @@ jobs:
           skip-existing: true
 
   github-release:
-    needs: [build, macos-dmg, desktop-packages]
+    needs: [build, macos-dmg, ios-ipa, desktop-packages]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -128,6 +156,10 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dmg
+          path: dist/
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ipa
           path: dist/
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:

@@ -53,6 +53,33 @@ Blurry writes the output next to the original, or in the folder you choose with 
 is being written it is called `.<name>.blurry-partial` and is renamed at the end; if something
 fails, the partial file is removed.
 
+## iPhone and iPad
+
+The iOS app (photos only, for now) has its own engine written in Swift. On every change, CI checks
+it against the desktop engine: same boxes, same covering, same metadata removed. The rules above
+apply, with these differences:
+
+- **No network, but no socket guard.** The app has no network code and is not linked to any
+  network framework (checked every time the `.ipa` is built), but iOS does not let an app forbid
+  itself the network the way the desktop engine blocks sockets in its own process.
+- **Only the photos you choose.** Photos come from the system picker, which gives Blurry the
+  photos you pick and nothing else from your library: Blurry never asks for library access.
+  Files opened from another app are copied by iOS into Blurry's Inbox; Blurry reads them into
+  memory and deletes the copy at once.
+- **Where the clean file goes.** To Files, or to another app through the share sheet. "Save Image"
+  is left out of the share sheet on purpose: saving to Photos also syncs the file to iCloud
+  Photos if you use it.
+- **The app switcher.** While Blurry is not on screen a cover hides it, so the snapshot iOS keeps
+  for the app switcher never shows an uncovered photo.
+- **What stays on the device.** Only the preferences (sensitivity, cover, margin) and whether you
+  have seen the guide. Copies left by the pickers are deleted when Blurry starts and whenever it
+  leaves the screen.
+- **The original stays in your library**, and in iCloud Photos if you use it: see "The original is
+  still there", and remember the "Recently Deleted" album.
+- **Unsigned install.** The `.ipa` is not signed by Apple; AltStore or SideStore sign it with your
+  own Apple ID. Check it with `SHA256SUMS` and `gh attestation verify` before installing (see the
+  README).
+
 ## Reporting a problem
 
 If you find a way in which Blurry leaks something it claims to remove, please report it privately:

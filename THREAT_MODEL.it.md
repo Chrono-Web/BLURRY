@@ -55,6 +55,34 @@ Blurry scrive il risultato accanto all'originale, o nella cartella che scegli co
 scrive, il file si chiama `.<nome>.blurry-partial` e alla fine viene rinominato; se qualcosa va
 storto, il file parziale viene cancellato.
 
+## iPhone e iPad
+
+L'app iOS (per ora solo foto) ha un motore suo, scritto in Swift. A ogni modifica la CI lo
+confronta con quello desktop: stessi riquadri, stessa copertura, stessi metadati tolti. Le regole
+qui sopra valgono, con queste differenze:
+
+- **Niente rete, ma senza blocco dei socket.** L'app non ha codice di rete e non è collegata a
+  nessun framework di rete (lo si controlla ogni volta che si costruisce l'`.ipa`), ma iOS non
+  permette a un'app di vietarsi la rete come fa il motore desktop bloccando i socket nel proprio
+  processo.
+- **Solo le foto che scegli.** Le foto arrivano dal selettore di sistema, che dà a Blurry le foto
+  scelte e nient'altro della libreria: Blurry non chiede mai l'accesso alla libreria. I file
+  aperti da un'altra app vengono copiati da iOS nella cartella Inbox di Blurry; Blurry li legge in
+  memoria e cancella subito la copia.
+- **Dove va il file pulito.** In File, o a un'altra app con il foglio di condivisione. «Salva
+  immagine» è tolto apposta dal foglio: salvare in Foto manda il file anche su Foto di iCloud, se
+  lo usi.
+- **Il selettore delle app.** Quando Blurry non è sullo schermo, un velo lo copre: l'istantanea
+  che iOS conserva per il selettore delle app non mostra mai una foto scoperta.
+- **Che cosa resta sul dispositivo.** Solo le impostazioni (sensibilità, copertura, margine) e se
+  hai visto la guida. Le copie lasciate dai selettori vengono cancellate all'avvio e ogni volta
+  che Blurry esce dallo schermo.
+- **L'originale resta nella libreria**, e su Foto di iCloud se lo usi: vedi «L'originale è ancora
+  lì», e ricorda l'album «Eliminati di recente».
+- **Installazione non firmata.** L'`.ipa` non è firmata da Apple: AltStore o SideStore la firmano
+  con il tuo Apple ID. Controllala con `SHA256SUMS` e `gh attestation verify` prima di
+  installarla (vedi il README).
+
 ## Segnalare un problema
 
 Se trovi un modo in cui Blurry lascia passare qualcosa che dice di togliere, segnalalo in privato:

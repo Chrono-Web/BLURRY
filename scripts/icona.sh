@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Rigenera macos/Blurry.icns e docs/icona.png (README, Windows e Linux)
+# Rigenera macos/Blurry.icns, docs/icona.png (README, Windows e Linux) e l'icona iOS
 # dall'icona disegnata in codice (AppIconArt in macos/Sources/Blurry/AppIcon.swift).
 # Si lancia solo quando il disegno cambia; entrambi i file sono committati.
 #
@@ -33,3 +33,9 @@ iconutil -c icns "$SET" -o "$OUT"
 echo "scritto $OUT"
 sips -z 256 256 "$WORK/icon_1024.png" --out "$ROOT/docs/icona.png" >/dev/null
 echo "scritto $ROOT/docs/icona.png"
+
+# iOS: lo stesso disegno a tutto riquadro e senza trasparenza (iOS arrotonda da sé).
+IOS="$ROOT/ios/Blurry/Assets.xcassets/AppIcon.appiconset/icon-1024.png"
+perl -e 'alarm 20; exec @ARGV' "$BIN" --render-icon-ios "$IOS"
+test -s "$IOS"
+echo "scritto $IOS"
