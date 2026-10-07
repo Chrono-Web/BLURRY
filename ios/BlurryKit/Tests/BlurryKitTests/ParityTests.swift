@@ -42,7 +42,7 @@ final class ParityTests: XCTestCase {
 
             let engine = try ImageIn.load(url: Reference.url(ref["decoded"] as! String))
             let d = Pixels.diff(loaded.rgb.pixels, engine.rgb.pixels)
-            XCTAssertLessThanOrEqual(d.mean, 2.0, "\(name): decoded pixels differ by \(d.mean) on average")
+            XCTAssertLessThanOrEqual(d.mean, Pixels.decoderNoise, "\(name): decoded pixels differ by \(d.mean) on average")
 
             let m = match(Reference.boxes(ref["boxes"]), try det.detect(loaded.rgb))
             XCTAssertTrue(m.missing.isEmpty && m.extra.isEmpty, "\(name): missing \(m.missing), extra \(m.extra)")

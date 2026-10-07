@@ -50,6 +50,11 @@ enum Reference {
 }
 
 enum Pixels {
+    /// Mean difference allowed between two JPEG/HEIC decoders (ImageIO and
+    /// Pillow): measured up to 1.9 on macOS 14, 1.6 on macOS 26. A wrong
+    /// orientation, profile or channel order gives tens of levels.
+    static let decoderNoise = 3.0
+
     /// Mean and max absolute difference over the bytes where `mask` is true.
     static func diff(_ a: [UInt8], _ b: [UInt8], mask: ((Int) -> Bool)? = nil) -> (mean: Double, max: Int, count: Int) {
         precondition(a.count == b.count)

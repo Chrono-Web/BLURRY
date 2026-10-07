@@ -32,10 +32,10 @@ final class ImageTests: XCTestCase {
                 XCTAssertEqual(a, b, "\(name): alpha")
                 // Under transparent pixels the colour is invisible and may differ.
                 let d = Pixels.diff(loaded.rgb.pixels, engine.rgb.pixels, mask: { a[$0 / 3] == 255 })
-                XCTAssertLessThanOrEqual(d.mean, 2.0, "\(name): Δ mean \(d.mean)")
+                XCTAssertLessThanOrEqual(d.mean, Pixels.decoderNoise, "\(name): Δ mean \(d.mean)")
             } else {
                 let d = Pixels.diff(loaded.rgb.pixels, engine.rgb.pixels)
-                XCTAssertLessThanOrEqual(d.mean, 2.0, "\(name): Δ mean \(d.mean)")
+                XCTAssertLessThanOrEqual(d.mean, Pixels.decoderNoise, "\(name): Δ mean \(d.mean)")
                 print(String(format: "  %@: pixels Δ mean %.2f max %d", name, d.mean, d.max))
             }
         }
