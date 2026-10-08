@@ -139,8 +139,11 @@ jobs:
         with:
           version: "0.12.22"
           enable-cache: false
-      - name: Xcode 16.4 (the project needs Xcode 16 or later)
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app && xcodebuild -version
+      # The newest Xcode 26 on the image: the app uses iOS 26 APIs (background work).
+      - name: Xcode 26
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          xcodebuild -version
       - run: uv sync --frozen
       - run: scripts/crea-ipa.sh
       # For trying a build on a phone before a release (AltStore, SideStore).
