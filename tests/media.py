@@ -113,10 +113,13 @@ def exiftool(path: Path) -> dict:
     return json.loads(raw)[0]
 
 
-def write_hlg_video(path: Path, frames: list[np.ndarray], fps: int = 15) -> None:
+def write_hlg_video(
+    path: Path, frames: list[np.ndarray], fps: int = 15, signal: bool = False
+) -> None:
     """RGB (sRGB) frames -> HEVC 10 bit HLG BT.2020, as a phone records HDR:
     sRGB -> linear, BT.709 -> BT.2020 primaries, SDR white at HLG 75 %
-    (BT.2408), HLG OETF, BT.2020 matrix, limited range."""
+    (BT.2408), HLG OETF, BT.2020 matrix, limited range. With `signal` the
+    frames are already HLG values (float RGB, 0-1), written as they are."""
     a = 0.17883277
     b, c = 1 - 4 * a, 0.5 - a * np.log(4 * a)
 
@@ -137,14 +140,17 @@ def write_hlg_video(path: Path, frames: list[np.ndarray], fps: int = 15) -> None
         cc = vs.codec_context
         cc.color_primaries, cc.color_trc, cc.colorspace, cc.color_range = 9, 18, 9, 1
         for i, arr in enumerate(frames):
-            x = arr.astype(np.float64) / 255
-            lin = np.where(x <= 0.04045, x / 12.92, ((x + 0.055) / 1.055) ** 2.4) @ m.T
-            e = lin * white
-            hlg = np.where(
-                e <= 1 / 12,
-                np.sqrt(3 * np.maximum(e, 0)),
-                a * np.log(np.maximum(12 * e - b, 1e-9)) + c,
-            )
+            if signal:
+                hlg = arr.astype(np.float64)
+            else:
+                x = arr.astype(np.float64) / 255
+                lin = np.where(x <= 0.04045, x / 12.92, ((x + 0.055) / 1.055) ** 2.4) @ m.T
+                e = lin * white
+                hlg = np.where(
+                    e <= 1 / 12,
+                    np.sqrt(3 * np.maximum(e, 0)),
+                    a * np.log(np.maximum(12 * e - b, 1e-9)) + c,
+                )
             r, g, bl = hlg[..., 0], hlg[..., 1], hlg[..., 2]
             y = 0.2627 * r + 0.6780 * g + 0.0593 * bl
             cb, cr = (bl - y) / 1.8814, (r - y) / 1.4746

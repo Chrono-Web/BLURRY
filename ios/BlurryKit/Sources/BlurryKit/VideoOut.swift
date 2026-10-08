@@ -44,6 +44,13 @@ public enum VideoOut {
             AVVideoCodecKey: AVVideoCodecType.h264,
             AVVideoWidthKey: w,
             AVVideoHeightKey: h,
+            // SDR, said so: with no tags a player may guess, and a phone shown
+            // the frames of an HDR original guessed wrong (field test 2026-10-08).
+            AVVideoColorPropertiesKey: [
+                AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
+                AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
+                AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
+            ],
             AVVideoCompressionPropertiesKey: [
                 AVVideoAverageBitRateKey: max(1_000_000, Int(Double(w * h) * fps * bitsPerPixel)),
                 AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,

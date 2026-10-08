@@ -154,31 +154,29 @@ _TRC_HLG = 18
 
 @functools.cache
 def _hlg_tables() -> tuple[np.ndarray, np.ndarray]:
-    """Inverse HLG OETF (BT.2100) divided by the scene light of HLG 75 %, the
-    SDR white of BT.2408 (1.0 = white), on 4096 steps; and linear -> sRGB 8 bit
-    on 16384 steps. The same tables as BlurryKit (Orientation.rgbHLG)."""
+    """Inverse HLG OETF (BT.2100), scene light with 1.0 at the peak, on 4096
+    steps; and scene light -> 8 bit by a 1/2.57 power on 16384 steps. The same
+    tables as BlurryKit (Orientation.rgbHLG)."""
     a = 0.17883277
     b, c = 1 - 4 * a, 0.5 - a * math.log(4 * a)
 
     def scene(v: float) -> float:
         return v * v / 3 if v <= 0.5 else (math.exp((v - c) / a) + b) / 12
 
-    white = scene(0.75)
-    lin = np.array([scene(i / 4095) / white for i in range(4096)], dtype=np.float32)
-    srgb = []
-    for i in range(16384):
-        x = i / 16383
-        v = 12.92 * x if x <= 0.0031308 else 1.055 * x ** (1 / 2.4) - 0.055
-        srgb.append(max(0, min(255, math.floor(v * 255 + 0.5))))
-    return lin, np.array(srgb, dtype=np.uint8)
+    lin = np.array([scene(i / 4095) for i in range(4096)], dtype=np.float32)
+    out = [
+        max(0, min(255, math.floor((i / 16383) ** (1 / 2.57) * 255 + 0.5))) for i in range(16384)
+    ]
+    return lin, np.array(out, dtype=np.uint8)
 
 
 def _hlg_to_bgr(frame) -> np.ndarray:
-    """HLG to SDR as BT.2408 does for scene light: BT.2020 matrix, inverse
-    HLG OETF, HLG 75 % as white, a soft knee above 0.9, BT.2020 -> BT.709
-    primaries (BT.2087), sRGB curve. Read as plain 8-bit video an HLG frame
-    looks washed out. Mirrors BlurryKit's Orientation.rgbHLG step by step, in
-    float32, so the app on a phone sees the same picture."""
+    """HLG to SDR as Apple's own conversion does it, measured on a grey ramp:
+    BT.2020 matrix, inverse HLG OETF with the peak as white, BT.2020 -> BT.709
+    primaries (BT.2087), a 1/2.57 power. Read as plain 8-bit video an HLG
+    frame looks washed out; with HLG 75 % as white (BT.2408) real phone videos
+    blew out. Mirrors BlurryKit's Orientation.rgbHLG step by step, in float32,
+    so the app on a phone sees the same picture."""
     if frame.format.name != "yuv420p10le":
         frame = frame.reformat(format="yuv420p10le")
     w, h = frame.width, frame.height
@@ -208,11 +206,7 @@ def _hlg_to_bgr(frame) -> np.ndarray:
     bl = lin(y + f(1.8814) * cb)
 
     def enc(x: np.ndarray) -> np.ndarray:
-        # Highlights above white are compressed into the top 10 % instead of clipped.
-        k = np.where(
-            x <= f(0.9), x, f(0.9) + f(0.1) * (f(1) - f(1) / (f(1) + (x - f(0.9)) / f(0.1)))
-        )
-        return srgb_t[(np.clip(k, f(0), f(1)) * f(16383) + f(0.5)).astype(np.int32)]
+        return srgb_t[(np.clip(x, f(0), f(1)) * f(16383) + f(0.5)).astype(np.int32)]
 
     out = np.empty((h, w, 3), dtype=np.uint8)
     out[..., 2] = enc(f(1.6605) * r - f(0.5876) * g - f(0.0728) * bl)

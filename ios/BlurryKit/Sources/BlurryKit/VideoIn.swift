@@ -126,10 +126,12 @@ public enum VideoIn {
 ///
 /// HDR is the exception. Read as 8-bit BT.601 it looks washed out (field test
 /// 2026-10-08). HLG, what the iPhone records, is read at 10 bits and converted
-/// here as BT.2408 does for scene light: BT.2020 matrix, inverse HLG OETF,
-/// HLG 75 % as SDR white, a soft knee above it, BT.2020 -> BT.709 primaries,
-/// sRGB curve. PQ and other BT.2020 video is left to the reader's own
-/// conversion to BT.709.
+/// here the way Apple's own HDR -> SDR conversion does it, measured on a grey
+/// ramp: BT.2020 matrix, inverse HLG OETF with the peak as white, BT.2020 ->
+/// BT.709 primaries, then a 1/2.57 power (3 levels from Apple's curve, RMS).
+/// Taking HLG 75 % as white instead (BT.2408) blew real iPhone videos out:
+/// they keep much of the picture above it. PQ and other BT.2020 video is left
+/// to the reader's own conversion to BT.709.
 struct Orientation {
     let readerSettings: [String: Any]
 
@@ -239,20 +241,16 @@ struct Orientation {
                 min(bh - 1, max(0, Int((t.b * px + t.d * py + t.ty).rounded(.down)))))
     }
 
-    /// Inverse HLG OETF (BT.2100) on a non-linear value, divided by the scene
-    /// light of HLG 75 % (SDR white, BT.2408): 1.0 is white.
+    /// Inverse HLG OETF (BT.2100) on a non-linear value: scene light, 1.0 at the peak.
     private static let hlgLinear: [Float] = (0...4095).map { i in
         let e = Double(i) / 4095
         let a = 0.17883277, b = 1 - 4 * a, c = 0.5 - a * log(4 * a)
-        func scene(_ v: Double) -> Double { v <= 0.5 ? v * v / 3 : (exp((v - c) / a) + b) / 12 }
-        return Float(scene(e) / scene(0.75))
+        return Float(e <= 0.5 ? e * e / 3 : (exp((e - c) / a) + b) / 12)
     }
 
-    /// Linear (1.0 = white, a little above after the knee) -> sRGB 8 bit.
+    /// Scene light (1.0 = white) -> 8 bit, as Apple's conversion: a 1/2.57 power.
     private static let srgb: [UInt8] = (0...16383).map { i in
-        let l = Double(i) / 16383
-        let v = l <= 0.0031308 ? 12.92 * l : 1.055 * pow(l, 1 / 2.4) - 0.055
-        return UInt8(max(0, min(255, (v * 255).rounded())))
+        UInt8(max(0, min(255, (pow(Double(i) / 16383, 1 / 2.57) * 255).rounded())))
     }
 
     private func rgbHLG(_ buffer: CVPixelBuffer) -> RGBImage {
@@ -267,9 +265,7 @@ struct Orientation {
         var out = [UInt8](repeating: 0, count: w * h * 3)
         let toLinear = Self.hlgLinear, toSRGB = Self.srgb
         @inline(__always) func lin(_ v: Float) -> Float { toLinear[Int(max(0, min(1, v)) * 4095 + 0.5)] }
-        // Highlights above white are compressed into the top 10 % instead of clipped.
-        @inline(__always) func knee(_ v: Float) -> Float { v <= 0.9 ? v : 0.9 + 0.1 * (1 - 1 / (1 + (v - 0.9) / 0.1)) }
-        @inline(__always) func enc(_ v: Float) -> UInt8 { toSRGB[Int(max(0, min(1, knee(v))) * 16383 + 0.5)] }
+        @inline(__always) func enc(_ v: Float) -> UInt8 { toSRGB[Int(max(0, min(1, v)) * 16383 + 0.5)] }
         out.withUnsafeMutableBufferPointer { o in
             for dy in 0..<h {
                 for dx in 0..<w {

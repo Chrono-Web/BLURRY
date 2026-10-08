@@ -245,8 +245,9 @@ final class VideoTests: XCTestCase {
     }
 }
 
-/// HDR as the iPhone records it (HEVC 10 bit, HLG, BT.2020) comes out as the
-/// SDR picture it was made from, not washed out (5c, field test 2026-10-08).
+/// HDR as the iPhone records it (HEVC 10 bit, HLG, BT.2020) comes out as Apple
+/// shows it in SDR: not washed out (read as 8-bit BT.601), not blown out (HLG
+/// 75 % as white). Field tests of 2026-10-08.
 final class HDRVideoTests: XCTestCase {
     func testHLGReadsAsSDR() async throws {
         let source = try ImageIn.load(url: Reference.url("decoded/video-landscape.mp4-0.png")).rgb
@@ -261,13 +262,82 @@ final class HDRVideoTests: XCTestCase {
         var read: RGBImage?
         try await VideoIn.frames(url) { _, rgb, _ in read = rgb; return false }
         let got = try XCTUnwrap(read)
-        let d = Pixels.diff(got.pixels, source.pixels)
-        let (sg, ss) = (Self.saturation(got), Self.saturation(source))
-        print(String(format: "  HLG: Δ mean %.2f, saturation %.1f (source %.1f)", d.mean, sg, ss))
-        // Read as 8-bit BT.601 it was Δ 19.8 and saturation 53; the rest is the
-        // encoder's own SDR -> HLG step and HEVC.
-        XCTAssertLessThan(d.mean, 8)
-        XCTAssertEqual(sg, ss, accuracy: ss * 0.15)
+        let apple = try await Self.appleSDR(url)
+        let d = Pixels.diff(got.pixels, apple.pixels)
+        let (sg, sa) = (Self.saturation(got), Self.saturation(apple))
+        let (lg, la) = (Self.lightness(got), Self.lightness(apple))
+        print(String(format: "  HLG against Apple's SDR: Δ mean %.2f, saturation %.1f (%.1f), lightness %.1f (%.1f)",
+                     d.mean, sg, sa, lg, la))
+        XCTAssertLessThan(d.mean, 8)   // 6.4 here: a power curve, not Apple's exact one
+        XCTAssertEqual(sg, sa, accuracy: sa * 0.15)
+        XCTAssertEqual(lg, la, accuracy: 8)
+    }
+
+    /// The first frame as AVFoundation converts it to BT.709 SDR itself.
+    static func appleSDR(_ url: URL) async throws -> RGBImage {
+        let asset = AVURLAsset(url: url)
+        let tracks = try await asset.loadTracks(withMediaType: .video)
+        let track = try XCTUnwrap(tracks.first)
+        let reader = try AVAssetReader(asset: asset)
+        let output = AVAssetReaderTrackOutput(track: track, outputSettings: [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+            AVVideoColorPropertiesKey: [
+                AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
+                AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
+                AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
+            ],
+        ])
+        reader.add(output)
+        reader.startReading()
+        let sample = try XCTUnwrap(output.copyNextSampleBuffer())
+        let pb = try XCTUnwrap(CMSampleBufferGetImageBuffer(sample))
+        CVPixelBufferLockBaseAddress(pb, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(pb, .readOnly) }
+        let w = CVPixelBufferGetWidth(pb), h = CVPixelBufferGetHeight(pb), row = CVPixelBufferGetBytesPerRow(pb)
+        let base = CVPixelBufferGetBaseAddress(pb)!.assumingMemoryBound(to: UInt8.self)
+        var px = [UInt8](repeating: 0, count: w * h * 3)
+        for y in 0..<h {
+            for x in 0..<w {
+                let s = y * row + x * 4, d = (y * w + x) * 3
+                px[d] = base[s + 2]; px[d + 1] = base[s + 1]; px[d + 2] = base[s]
+            }
+        }
+        reader.cancelReading()
+        return RGBImage(width: w, height: h, pixels: px)
+    }
+
+    static func lightness(_ img: RGBImage) -> Double {
+        Double(img.pixels.reduce(0) { $0 + Int($1) }) / Double(img.pixels.count)
+    }
+
+    /// The clean file is SDR, tagged BT.709, and shows the picture read.
+    func testHLGRendersAsSDR() async throws {
+        let source = try ImageIn.load(url: Reference.url("decoded/video-landscape.mp4-0.png")).rgb
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("blurrykit-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let hlg = dir.appendingPathComponent("hlg.mov"), out = dir.appendingPathComponent("out.mp4")
+        try await Self.writeHLG(source, frames: 5, to: hlg)
+        _ = try await VideoOut.render(hlg, to: out, frameCount: 5, keepAudio: false) { _, _ in }
+
+        let tracks = try await AVURLAsset(url: out).loadTracks(withMediaType: .video)
+        let track = try XCTUnwrap(tracks.first)
+        let formats = try await track.load(.formatDescriptions)
+        let format = try XCTUnwrap(formats.first)
+        func ext(_ key: CFString) -> String? { CMFormatDescriptionGetExtension(format, extensionKey: key) as? String }
+        print("  rendered tags:", ext(kCMFormatDescriptionExtension_ColorPrimaries) ?? "-",
+              ext(kCMFormatDescriptionExtension_TransferFunction) ?? "-",
+              ext(kCMFormatDescriptionExtension_YCbCrMatrix) ?? "-")
+        XCTAssertEqual(ext(kCMFormatDescriptionExtension_ColorPrimaries), kCMFormatDescriptionColorPrimaries_ITU_R_709_2 as String)
+        XCTAssertEqual(ext(kCMFormatDescriptionExtension_TransferFunction), kCMFormatDescriptionTransferFunction_ITU_R_709_2 as String)
+        XCTAssertEqual(ext(kCMFormatDescriptionExtension_YCbCrMatrix), kCMFormatDescriptionYCbCrMatrix_ITU_R_709_2 as String)
+
+        var read: RGBImage?, written: RGBImage?
+        try await VideoIn.frames(hlg) { _, rgb, _ in read = rgb; return false }
+        try await VideoIn.frames(out) { _, rgb, _ in written = rgb; return false }
+        let d = Pixels.diff(try XCTUnwrap(written).pixels, try XCTUnwrap(read).pixels)
+        print(String(format: "  rendered HLG against the frame read: Δ mean %.2f", d.mean))
+        XCTAssertLessThan(d.mean, 4)   // H.264 at the export bit rate
     }
 
     /// Mean of max(R,G,B) - min(R,G,B).

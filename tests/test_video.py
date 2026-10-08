@@ -115,21 +115,34 @@ def test_odd_size_avi_and_mkv(tmp_path, outdir):
         assert report(res)["frames"] == 8
 
 
-def test_hlg_video_keeps_its_colour(tmp_path):
-    """HDR as phones record it (HEVC 10 bit, HLG, BT.2020) is read as the SDR
-    picture it shows, not washed out: read as plain 8-bit video it lost almost
-    half of its saturation (field test of the iOS app, 2026-10-08)."""
+def test_hlg_video_as_apple_shows_it(tmp_path):
+    """HDR as phones record it (HEVC 10 bit, HLG, BT.2020) comes out in SDR as
+    Apple's own conversion shows it. Field tests of the iOS app, 2026-10-08:
+    read as plain 8-bit video it was washed out; with HLG 75 % as white
+    (BT.2408) real iPhone videos were blown out."""
     from blurry_opsec import video_io
 
-    src = frames_from("sts125_crew.jpg", 640, 360, 3)
-    path = tmp_path / "hdr.mp4"
-    write_hlg_video(path, src)
-    got = [bgr[..., ::-1] for bgr in video_io.iter_frames(path)]
-    assert len(got) == 3
+    # A grey ramp of HLG values, and what AVFoundation makes of it in BT.709
+    # (measured on macOS 26 with AVAssetReader, 2026-10-08).
+    apple = {0.25: 55, 0.5: 98, 0.75: 155, 0.94: 226}
+    ramp = np.tile(np.linspace(0, 1, 1024)[None, :, None], (64, 1, 3))
+    path = tmp_path / "ramp.mp4"
+    write_hlg_video(path, [ramp], signal=True)
+    grey = next(video_io.iter_frames(path))[32]
+    for v, expected in apple.items():
+        assert abs(int(grey[round(v * 1023)].mean()) - expected) <= 5, v
 
-    def saturation(a):
-        return float((a.max(-1).astype(int) - a.min(-1)).mean())
+    # Colour survives: each patch keeps its purity ((max - min) / max), which
+    # the plain reading loses (a green turns olive).
+    def purity(px):
+        px = px.astype(float)
+        return (px.max() - px.min()) / px.max()
 
-    for g, s in zip(got, src, strict=True):
-        assert np.abs(g.astype(int) - s).mean() < 8
-        assert saturation(g) == pytest.approx(saturation(s), rel=0.15)
+    for colour in [(200, 30, 30), (30, 160, 40), (40, 60, 200), (220, 180, 40)]:
+        path = tmp_path / "patch.mp4"
+        write_hlg_video(path, [np.full((64, 64, 3), colour, np.uint8)])
+        got = next(video_io.iter_frames(path))[32, 32][::-1]
+        with av.open(str(path)) as c:
+            plain = next(c.decode(video=0)).to_ndarray(format="rgb24")[32, 32]
+        assert purity(got) >= 0.85 * purity(np.array(colour)), colour
+        assert purity(got) > purity(plain), colour
