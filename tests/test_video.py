@@ -138,11 +138,14 @@ def test_hlg_video_as_apple_shows_it(tmp_path):
         px = px.astype(float)
         return (px.max() - px.min()) / px.max()
 
-    for colour in [(200, 30, 30), (30, 160, 40), (40, 60, 200), (220, 180, 40)]:
-        path = tmp_path / "patch.mp4"
-        write_hlg_video(path, [np.full((64, 64, 3), colour, np.uint8)])
-        got = next(video_io.iter_frames(path))[32, 32][::-1]
-        with av.open(str(path)) as c:
-            plain = next(c.decode(video=0)).to_ndarray(format="rgb24")[32, 32]
-        assert purity(got) >= 0.85 * purity(np.array(colour)), colour
-        assert purity(got) > purity(plain), colour
+    colours = [(200, 30, 30), (30, 160, 40), (40, 60, 200), (220, 180, 40)]
+    frame = np.concatenate([np.full((128, 128, 3), c, np.uint8) for c in colours], axis=1)
+    path = tmp_path / "patches.mp4"
+    write_hlg_video(path, [frame] * 3)
+    got = next(video_io.iter_frames(path))[..., ::-1]
+    with av.open(str(path)) as c:
+        plain = next(c.decode(video=0)).to_ndarray(format="rgb24")
+    for k, colour in enumerate(colours):
+        x = k * 128 + 64
+        assert purity(got[64, x]) >= 0.85 * purity(np.array(colour)), colour
+        assert purity(got[64, x]) > purity(plain[64, x]), colour
