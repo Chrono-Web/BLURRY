@@ -102,7 +102,7 @@ final class VideoTests: XCTestCase {
         func firm(_ b: Box) -> Bool { (b.score ?? 0) >= threshold + margin }
         for (name, ref) in videos() {
             let expected = (ref["detections"] as! [Any]).map { Reference.boxes($0) }
-            var worst = 1.0, worstAny = 1.0, near = 0, problems: [String] = []
+            var worst = 1.0, worstAny = 1.0, near = 0, problems: [String] = [], worstCase = ""
             try await VideoIn.frames(url(name)) { i, rgb, _ in
                 let got = try det.detect(rgb)
                 let m = match(expected[i], got)
@@ -114,14 +114,18 @@ final class VideoTests: XCTestCase {
                 for r in expected[i] {
                     guard let best = got.map({ r.iou($0) }).max(), best >= 0.5 else { continue }
                     worstAny = min(worstAny, best)
-                    if firm(r) { worst = min(worst, best) }
+                    if firm(r), best < worst {
+                        worst = best
+                        let g = got.max { r.iou($0) < r.iou($1) }!
+                        worstCase = "frame \(i): \([r.x, r.y, r.w, r.h]) \(r.score ?? 0) -> \([g.x, g.y, g.w, g.h]) \(g.score ?? 0)"
+                    }
                 }
                 return true
             }
             XCTAssertEqual(problems, [], name)
-            XCTAssertGreaterThanOrEqual(worst, 0.9, name)
+            XCTAssertGreaterThanOrEqual(worst, 0.9, "\(name) \(worstCase)")
             print(String(format: "  %@: min IoU %.3f (%.3f with the faces near the threshold), %d near the threshold differ",
-                         name, worst, worstAny, near))
+                         name, worst, worstAny, near), worstCase)
         }
     }
 
