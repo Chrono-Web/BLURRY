@@ -76,24 +76,52 @@ final class VideoTests: XCTestCase {
         }
     }
 
-    /// Decoded by AVFoundation instead of FFmpeg: the same faces in every frame,
-    /// IoU >= 0.9 each (the frames differ in the YUV to RGB step, not in content).
-    func testDetectionsPerFrame() async throws {
+    /// On the frames FFmpeg decoded for the engine: identical boxes, as for
+    /// photos (ParityTests, test a).
+    func testDetectionIdenticalOnEngineFrames() throws {
         let det = try Self.detector.get()
         for (name, ref) in videos() {
             let expected = (ref["detections"] as! [Any]).map { Reference.boxes($0) }
-            var worst = 1.0, problems: [String] = []
+            for (i, png) in ref["decoded_frames"] as! [String: String] {
+                let rgb = try ImageIn.load(url: Reference.url(png)).rgb
+                assertSame(try det.detect(rgb), expected[Int(i)!], "\(name) frame \(i)")
+            }
+        }
+    }
+
+    /// Decoded by AVFoundation instead of FFmpeg: the same faces in every frame,
+    /// IoU >= 0.9 each. The frames differ by one level here and there (YUV to
+    /// RGB), which moves a face whose score is within `margin` of the threshold
+    /// in or out, and its box: those may differ. The test videos are encoded by
+    /// the FFmpeg of the machine, so which faces are near the threshold changes
+    /// with its version.
+    func testDetectionsPerFrame() async throws {
+        let det = try Self.detector.get()
+        let threshold = try Levels.shared.get(Levels.shared.mostSensitive).confidence
+        let margin = 0.05
+        func firm(_ b: Box) -> Bool { (b.score ?? 0) >= threshold + margin }
+        for (name, ref) in videos() {
+            let expected = (ref["detections"] as! [Any]).map { Reference.boxes($0) }
+            var worst = 1.0, worstAny = 1.0, near = 0, problems: [String] = []
             try await VideoIn.frames(url(name)) { i, rgb, _ in
-                let m = match(expected[i], try det.detect(rgb))
-                if !m.missing.isEmpty || !m.extra.isEmpty {
-                    problems.append("frame \(i): -\(m.missing.map { $0.score ?? 0 }) +\(m.extra.map { $0.score ?? 0 })")
+                let got = try det.detect(rgb)
+                let m = match(expected[i], got)
+                let missing = m.missing.filter(firm), extra = m.extra.filter(firm)
+                if !missing.isEmpty || !extra.isEmpty {
+                    problems.append("frame \(i): -\(missing.map { $0.score ?? 0 }) +\(extra.map { $0.score ?? 0 })")
                 }
-                worst = min(worst, m.minIoU)
+                near += m.missing.count - missing.count + m.extra.count - extra.count
+                for r in expected[i] {
+                    guard let best = got.map({ r.iou($0) }).max(), best >= 0.5 else { continue }
+                    worstAny = min(worstAny, best)
+                    if firm(r) { worst = min(worst, best) }
+                }
                 return true
             }
             XCTAssertEqual(problems, [], name)
             XCTAssertGreaterThanOrEqual(worst, 0.9, name)
-            print(String(format: "  %@: min IoU %.3f", name, worst))
+            print(String(format: "  %@: min IoU %.3f (%.3f with the faces near the threshold), %d near the threshold differ",
+                         name, worst, worstAny, near))
         }
     }
 

@@ -86,3 +86,14 @@ func match(_ ref: [Box], _ got: [Box]) -> (missing: [Box], extra: [Box], minIoU:
     let extra = got.enumerated().filter { !used.contains($0.offset) }.map(\.element)
     return (missing, extra, minIoU)
 }
+
+/// Identical boxes; scores within 1e-5 (Core ML and OpenCV DNN sum the
+/// convolutions in a different order).
+func assertSame(_ got: [Box], _ ref: [Box], _ what: String,
+                file: StaticString = #filePath, line: UInt = #line) {
+    XCTAssertEqual(got.count, ref.count, what, file: file, line: line)
+    for (g, r) in zip(got, ref) {
+        XCTAssertEqual([g.x, g.y, g.w, g.h], [r.x, r.y, r.w, r.h], what, file: file, line: line)
+        XCTAssertEqual(g.score ?? -1, r.score ?? -1, accuracy: 1e-5, what, file: file, line: line)
+    }
+}
