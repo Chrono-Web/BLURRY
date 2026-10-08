@@ -3,7 +3,8 @@
 <!-- Merged with the keys generated from the build settings (INFOPLIST_KEY_*). -->
 <plist version="1.0">
 <dict>
-	<!-- "Open in Blurry" from other apps, for the formats BlurryKit reads. -->
+	<!-- "Open in Blurry" from other apps, for the formats BlurryKit reads
+	     (videos: MP4, MOV and M4V only, what AVFoundation reads). -->
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -20,6 +21,20 @@
 				<string>public.heic</string>
 				<string>public.heif</string>
 				<string>org.webmproject.webp</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Video</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.mpeg-4</string>
+				<string>com.apple.quicktime-movie</string>
+				<string>com.apple.m4v-video</string>
 			</array>
 		</dict>
 	</array>

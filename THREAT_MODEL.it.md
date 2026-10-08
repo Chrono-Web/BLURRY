@@ -57,7 +57,7 @@ storto, il file parziale viene cancellato.
 
 ## iPhone e iPad
 
-L'app iOS (per ora solo foto) ha un motore suo, scritto in Swift. A ogni modifica la CI lo
+L'app iOS ha un motore suo, scritto in Swift. A ogni modifica la CI lo
 confronta con quello desktop: stessi riquadri, stessa copertura, stessi metadati tolti. Le regole
 qui sopra valgono, con queste differenze:
 
@@ -77,6 +77,15 @@ qui sopra valgono, con queste differenze:
 - **Che cosa resta sul dispositivo.** Solo le impostazioni (sensibilità, copertura, margine) e se
   hai visto la guida. Le copie lasciate dai selettori vengono cancellate all'avvio e ogni volta
   che Blurry esce dallo schermo.
+- **I video si copiano mentre ci lavori.** Un video è troppo grande per stare in memoria: finché è
+  nella coda di Blurry, una copia sta nella cartella temporanea privata dell'app, protetta dalla
+  cifratura del dispositivo. La copia si cancella quando togli il video dalla coda, e a ogni avvio
+  di Blurry. Il file pulito resta nella stessa cartella solo finché il foglio di salvataggio o di
+  condivisione non si chiude.
+- **Video: solo MP4, MOV e M4V.** iOS non legge MKV, WebM e AVI. I video HDR dell'iPhone escono in
+  SDR, come sul desktop.
+- **Tieni Blurry aperto mentre lavora.** Se va in secondo piano durante un'analisi o
+  un'esportazione, il lavoro si ferma (iOS lo interromperebbe comunque) e riparte quando torni.
 - **L'originale resta nella libreria**, e su Foto di iCloud se lo usi: vedi «L'originale è ancora
   lì», e ricorda l'album «Eliminati di recente».
 - **Installazione non firmata.** L'`.ipa` non è firmata da Apple: AltStore o SideStore la firmano

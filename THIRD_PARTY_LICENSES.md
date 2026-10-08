@@ -9,7 +9,7 @@ Full licence texts are in [`licenses/`](licenses/).
 |---|---|
 | **Python package on PyPI** (`blurry-opsec`) | Blurry's code (MIT), the YuNet model (MIT) and the Geist SemiBold and Geist Mono fonts (SIL OFL 1.1). Its dependencies are not included: pip installs them from PyPI, each under its own licence. |
 | **Windows / Linux installers** | The bundled engine dependencies below plus PySide6-Essentials, shiboken6 and Qt (LGPL-3.0), Python and the PyInstaller bootloader. Native wheel notices are copied into `THIRD_PARTY/` and resolved versions into `dependencies.json`. Dynamic libraries remain separate and replaceable. |
-| **iPhone and iPad app** (`Blurry.ipa`) | Blurry's code (MIT) and the YuNet model converted to Core ML (MIT, `YuNet-LICENSE` inside the app). Nothing else: images are read and written with Apple's system frameworks, so neither FFmpeg nor x264/x265 is included. |
+| **iPhone and iPad app** (`Blurry.ipa`) | Blurry's code (MIT) and the YuNet model converted to Core ML (MIT, `YuNet-LICENSE` inside the app). Nothing else: photos and videos are read and written with Apple's system frameworks (ImageIO, AVFoundation, VideoToolbox), so neither FFmpeg nor x264/x265 is included. |
 | **Mac app** (`Blurry.dmg`) | All of the above **plus** the Python dependencies listed below (not PySide6/Qt: the Mac interface is SwiftUI), including **x264 and x265, which are GPL-2.0-or-later**, and the PyInstaller bootloader that starts the bundled engine. Those parts are distributed under their licences, with the source links given here. |
 
 ## Bundled with Blurry itself

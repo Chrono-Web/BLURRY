@@ -76,7 +76,7 @@ struct BoxEditor: View {
 
     private func begin(at p: CGPoint, _ s: CGFloat) -> Op {
         let grab = 22 / s   // a fingertip, at any zoom
-        if let sel = store.selectedBox {
+        if let sel = store.selectedBox, sel.movable {
             let r = sel.rect
             let corners = [(CGPoint(x: r.minX, y: r.minY), CGPoint(x: r.maxX, y: r.maxY)),
                            (CGPoint(x: r.maxX, y: r.minY), CGPoint(x: r.minX, y: r.maxY)),
@@ -86,7 +86,7 @@ struct BoxEditor: View {
                 return .resize(sel, r, opposite)
             }
         }
-        if let hit = hit(p) {
+        if let hit = hit(p), hit.movable {
             store.selection = hit.id
             return .move(hit, hit.rect)
         }
@@ -119,30 +119,39 @@ struct BoxEditor: View {
     }
 }
 
-/// One box: green found, orange uncertain, white drawn by hand. The selected
-/// one is thicker, with corner handles.
+/// One box: green found, orange uncertain, white drawn by hand, grey dashed
+/// when its track is off. The selected one is thicker, with corner handles if
+/// it can be resized.
 struct BoxShape: View {
     let box: EditBox
     let rect: CGRect
     let selected: Bool
 
     var color: Color {
-        if case .drawn = box.owner { return .white }
-        return box.uncertain ? .orange : accent
+        if !box.enabled { return Color.white.opacity(0.6) }
+        switch box.owner {
+        case .drawn, .manual: return .white
+        default: return box.uncertain ? .orange : accent
+        }
     }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             Rectangle()
                 .fill(color.opacity(selected ? 0.18 : 0.06))
-                .overlay(Rectangle().stroke(color, lineWidth: selected ? 2 : 1.5))
+                .overlay(Rectangle().stroke(color, style: StrokeStyle(lineWidth: selected ? 2 : 1.5,
+                                                                      dash: box.enabled ? [] : [4, 3])))
                 .frame(width: rect.width, height: rect.height)
-            if selected {
+            if selected && box.movable {
+                // Small enough not to hide a small face; the area that grabs a
+                // corner stays a fingertip wide (BoxEditor.begin).
+                let d = max(5, min(8, min(rect.width, rect.height) / 4))
                 ForEach(0..<4, id: \.self) { k in
                     Circle()
                         .fill(Color.white)
-                        .frame(width: 11, height: 11)
-                        .offset(x: (k % 2 == 0 ? 0 : rect.width) - 5.5, y: (k < 2 ? 0 : rect.height) - 5.5)
+                        .overlay(Circle().stroke(Color.black.opacity(0.35), lineWidth: 0.5))
+                        .frame(width: d, height: d)
+                        .offset(x: (k % 2 == 0 ? 0 : rect.width) - d / 2, y: (k < 2 ? 0 : rect.height) - d / 2)
                 }
             }
         }
@@ -151,33 +160,84 @@ struct BoxShape: View {
     }
 }
 
-/// Below the picture, in edit mode: what to do, the legend, the action for
-/// the selected box, and Cancel / Done.
+/// Below the picture, in edit mode: what to do, the video timeline, the
+/// legend and the actions for the selected box. Cancel and Done are in the
+/// navigation bar, as in Photos.
 struct EditPanel: View {
     @Environment(Store.self) private var store
+    let item: Item
 
     var body: some View {
         VStack(spacing: 12) {
-            Text(L.correct).font(.headline)
-            Text(L.editHint)
+            Text(item.kind == .video ? L.editHintVideo : L.editHint)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            if item.kind == .video {
+                let position = item.index ?? 0
+                HStack(spacing: 12) {
+                    Timeline(frameCount: item.frameCount, ranges: item.coveredRanges, position: position) {
+                        store.seek(to: $0)
+                    }
+                    Text("\(clock(position, fps: item.fps)) / \(clock(item.frameCount, fps: item.fps))")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                }
+            }
             HStack(spacing: 12) {
                 dot(accent, L.legendFound)
                 dot(.orange, L.legendUncertain)
                 dot(.white, L.legendDrawn)
+                if item.kind == .video { dot(Color.white.opacity(0.6), L.legendOff) }
                 Spacer()
-                if let box = store.selectedBox {
-                    Button(L.removeBox, role: .destructive) { store.removeBox(box) }
-                        .font(.callout)
+            }
+            selectionActions
+                .frame(minHeight: 44)
+        }
+    }
+
+    /// System bordered buttons with symbols; removing is the destructive one.
+    @ViewBuilder
+    private var selectionActions: some View {
+        if let box = store.selectedBox {
+            switch box.owner {
+            case let .track(id):
+                Button { store.toggleTrack(id) } label: {
+                    Label(box.enabled ? L.trackOff : L.trackOn, systemImage: box.enabled ? "eye.slash" : "eye")
                 }
+                .buttonStyle(.bordered)
+            case let .manual(j):
+                VStack(spacing: 8) {
+                    if let a = box.start, let b = box.end {
+                        // The end is the end of the last covered frame.
+                        Text(L.span(clock(a, fps: item.fps), clock(b + 1, fps: item.fps)))
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack(spacing: 8) {
+                        Button(L.startHere) { store.setRange(j, start: true) }
+                        Button(L.endHere) { store.setRange(j, start: false) }
+                        Button(role: .destructive) { store.removeBox(box) } label: {
+                            Label(L.removeBox, systemImage: "trash")
+                        }
+                        .labelStyle(.iconOnly)
+                        .tint(.red)   // the app's green tint would hide the destructive role
+                        .accessibilityLabel(L.removeBox)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            default:
+                Button(role: .destructive) { store.removeBox(box) } label: {
+                    Label(L.removeBox, systemImage: "trash")
+                }
+                .buttonStyle(.bordered)
+                .tint(.red)
             }
-            .frame(height: 30)
-            HStack(spacing: 10) {
-                Button(L.cancel) { store.endEditing(keep: false) }.buttonStyle(SecondaryButtonStyle())
-                Button(L.doneEditing) { store.endEditing(keep: true) }.buttonStyle(PrimaryButtonStyle())
-            }
+        } else {
+            Text(store.current?.kind == .video ? L.selectHintVideo : L.selectHint)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
     }
 

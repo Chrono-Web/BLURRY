@@ -6,22 +6,26 @@ For every public fixture: the pixels as the engine decodes them (lossless PNG),
 the boxes at the most sensitive level, the plan and flags at every level, and
 the solid and pixel renders of those same pixels. Plus files that exercise
 reading: metadata, orientation, colour profiles, alpha, refusals.
-Needs exiftool for the poisoned JPEG (macOS: brew install exiftool).
+Videos: those of tests/test_video.py (tests/media.py), with what the engine
+detects in every frame and the plan, tracks and coverage at every level.
+Needs exiftool for the poisoned JPEG and ffmpeg for the phone-style video
+(macOS: brew install exiftool ffmpeg).
 """
 
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import cv2
 import numpy as np
 from PIL import Image, ImageCms, PngImagePlugin
 
-from blurry_opsec import engine, image_io, levels, redact
+from blurry_opsec import engine, image_io, levels, redact, video_io
 from blurry_opsec.detect import FaceDetector
 from blurry_opsec.files import InputError
-from blurry_opsec.plan import ImagePlan
+from blurry_opsec.plan import ImagePlan, VideoPlan
 
 ROOT = Path(__file__).resolve().parents[2]
 PUBLIC = ROOT / "tests/fixtures/public"
@@ -138,6 +142,70 @@ def make_extra(d: Path) -> list[Path]:
     return made
 
 
+def make_videos(d: Path) -> list[Path]:
+    """The videos of tests/test_video.py: a phone recording (stored sideways with
+    a 90° display matrix, location, device, dates, chapters, subtitles, a data
+    track and cover art) and a plain landscape one with sound."""
+    sys.path.insert(0, str(ROOT / "tests"))
+    from media import TOOLS, frames_from, inject_metadata, write_video
+
+    work = d / "work"
+    work.mkdir(parents=True, exist_ok=True)
+    made = []
+    if TOOLS["ffmpeg"]:
+        upright = frames_from("challenger_51l_crew.jpg", 640, 480, 30)
+        write_video(work / "plain.mp4", [np.ascontiguousarray(np.rot90(f, -1)) for f in upright])
+        inject_metadata(work / "plain.mp4", d / "phone.mov", rotation=90)
+        made.append(d / "phone.mov")
+    else:
+        print("ffmpeg missing: phone.mov skipped")
+    write_video(d / "landscape.mp4", frames_from("sts125_crew.jpg", 960, 540, 45), fps=30)
+    made.append(d / "landscape.mp4")
+    shutil.rmtree(work)
+    return made
+
+
+def plan_dict(plan: VideoPlan) -> dict:
+    return {
+        "frame_count": plan.frame_count,
+        "fps": plan.fps,
+        "extend_frames": plan.extend_frames,
+        "max_simultaneous": plan.max_simultaneous,
+        "tracks": [
+            {"id": t.id, "detections": [[f, *box_list([b])] for f, b in sorted(dets.items())]}
+            for t in plan.tracks
+            for dets in [t.detections]
+        ],
+        "flags": [f.to_dict() for f in plan.flags],
+        "coverage": [box_list(plan.boxes_for(i)) for i in range(plan.frame_count)],
+    }
+
+
+def video_entry(path: Path, det: FaceDetector) -> dict:
+    info = video_io.probe(path)
+    job = engine.analyze_video(path, engine.Settings(level=levels.MOST_SENSITIVE), det)
+    # Two frames as FFmpeg decodes them, to compare with AVFoundation's.
+    samples = {}
+    for i, bgr in enumerate(video_io.iter_frames(path)):
+        if i in (0, len(job.detections) // 2):
+            samples[str(i)] = f"decoded/video-{path.name}-{i}.png"
+            save_png(OUT / samples[str(i)], bgr[..., ::-1])
+    return {
+        "decoded_frames": samples,
+        "width": info.width,
+        "height": info.height,
+        "fps": info.fps,
+        "frames": len(job.detections),
+        "has_audio": info.has_audio,
+        "metadata_found": info.metadata_found,
+        "detections": [box_list(boxes) for boxes in job.detections],
+        "plans": {
+            name: plan_dict(engine.video_plan_from(job.detections, info, True, lv.confidence))
+            for name, lv in levels.LEVELS.items()
+        },
+    }
+
+
 def main() -> None:
     shutil.rmtree(OUT, ignore_errors=True)
     for sub in ("decoded", "renders"):
@@ -181,10 +249,14 @@ def main() -> None:
     extra = {
         p.name: loaded_entry(p, f"decoded/extra-{p.name}.png") for p in make_extra(OUT / "extra")
     }
+    videos = {p.name: video_entry(p, det) for p in make_videos(OUT / "video")}
     (OUT / "reference.json").write_text(
-        json.dumps({"fixtures": fixtures, "extra": extra}, indent=1)
+        json.dumps({"fixtures": fixtures, "extra": extra, "videos": videos}, indent=1)
     )
-    print(f"{len(fixtures)} fixtures, {len(extra)} extra files -> {OUT.relative_to(ROOT)}")
+    print(
+        f"{len(fixtures)} fixtures, {len(extra)} extra files, {len(videos)} videos"
+        f" -> {OUT.relative_to(ROOT)}"
+    )
 
 
 if __name__ == "__main__":

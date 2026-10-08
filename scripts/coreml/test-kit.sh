@@ -2,7 +2,7 @@
 # Test di BlurryKit (ios/BlurryKit), il motore Swift dell'app iOS, contro il
 # motore Python: prima il riferimento (riferimento.py scrive build/parity/),
 # poi swift test in release, che è molte volte più veloce del debug sui
-# cicli di pixel. Serve exiftool (brew install exiftool).
+# cicli di pixel. Servono exiftool e ffmpeg (brew install exiftool ffmpeg).
 #
 #   scripts/coreml/test-kit.sh
 set -euo pipefail

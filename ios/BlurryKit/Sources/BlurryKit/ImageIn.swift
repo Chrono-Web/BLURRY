@@ -7,7 +7,7 @@ import ImageIO
 /// same as the Python engine's (files.InputError).
 public struct InputError: Error, Equatable, CustomStringConvertible {
     public let description: String
-    init(_ message: String) { description = message }
+    public init(_ message: String) { description = message }
 }
 
 public enum OutFormat: String, Sendable {
@@ -120,7 +120,7 @@ public enum ImageIn {
     /// vImage, then put in display orientation. Alpha is kept only if some
     /// pixel is not fully opaque.
     static func decode(_ cg: CGImage, orientation: Int) throws -> (RGBImage, [UInt8]?) {
-        guard var format = vImage_CGImageFormat(
+        guard let format = vImage_CGImageFormat(
             bitsPerComponent: 8, bitsPerPixel: 32,
             colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
             bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue)
@@ -132,7 +132,6 @@ public enum ImageIn {
             throw InputError("image is damaged or too large")
         }
         defer { buffer.free() }
-        _ = format
 
         let sw = Int(buffer.width), sh = Int(buffer.height), rowBytes = buffer.rowBytes
         let swapped = orientation >= 5 && orientation <= 8

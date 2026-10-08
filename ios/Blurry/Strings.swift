@@ -10,26 +10,29 @@ enum L {
     private static func t(_ it: String, _ en: String) -> String { italian ? it : en }
 
     // Home
-    static var homeTitle: String { t("Scegli le foto da coprire", "Choose the photos to cover") }
+    static var homeTitle: String { t("Scegli foto e video da coprire", "Choose the photos and videos to cover") }
     static var choosePhotos: String { t("Scegli dalle Foto", "Choose from Photos") }
     static var chooseFiles: String { t("Scegli dai File", "Choose from Files") }
     static var homeHint: String {
-        t("Blurry riceve solo le foto che scegli: non vede il resto della libreria.",
-          "Blurry only gets the photos you choose: it cannot see the rest of your library.")
+        t("Blurry riceve solo i file che scegli: non vede il resto della libreria.",
+          "Blurry only gets the files you choose: it cannot see the rest of your library.")
     }
     static func skipped(_ n: Int) -> String {
         italian ? "\(n) file ignorati: formato non supportato." : "\(n) files skipped: unsupported format."
     }
     static var unreadable: String { t("Un file non si è potuto leggere.", "A file could not be read.") }
     static func photoName(_ n: Int) -> String { italian ? "Foto \(n)" : "Photo \(n)" }
+    static func videoName(_ n: Int) -> String { "Video \(n)" }
+    static var copying: String { t("Preparo i video…", "Preparing the videos…") }
 
     // Guide: steps
     static func stepTitle(_ step: Step) -> String {
         switch step {
-        case .sensitivity: t("SENSIBILITÀ", "SENSITIVITY")
-        case .cover: t("COPERTURA", "COVER")
-        case .margin: t("MARGINE", "MARGIN")
-        case .result: t("RISULTATO", "RESULT")
+        case .sensitivity: t("Sensibilità", "Sensitivity")
+        case .cover: t("Copertura", "Cover")
+        case .margin: t("Margine", "Margin")
+        case .audio: t("Audio", "Sound")
+        case .result: t("Risultato", "Result")
         }
     }
     static func stepQuestion(_ step: Step) -> String {
@@ -37,6 +40,7 @@ enum L {
         case .sensitivity: t("Quanto deve cercare i volti?", "How hard should it look for faces?")
         case .cover: t("Come coprirli?", "How should they be covered?")
         case .margin: t("Quanto spazio attorno al volto?", "How much room around each face?")
+        case .audio: t("E l'audio del video?", "What about the video's sound?")
         case .result: t("Ecco il risultato.", "Here is the result.")
         }
     }
@@ -49,7 +53,8 @@ enum L {
     static var change: String { t("Cambia", "Change") }
     static var tryAggressive: String { t("Prova Aggressivo", "Try Aggressive") }
     static var retry: String { t("Riprova", "Try Again") }
-    static func position(_ i: Int, _ n: Int) -> String { italian ? "\(i) DI \(n)" : "\(i) OF \(n)" }
+    static func stepCount(_ i: Int, _ n: Int) -> String { italian ? "Passo \(i) di \(n)" : "Step \(i) of \(n)" }
+    static func fileCount(_ i: Int, _ n: Int) -> String { italian ? "File \(i) di \(n)" : "File \(i) of \(n)" }
 
     static func levelLabel(_ key: String) -> String {
         switch key {
@@ -69,6 +74,13 @@ enum L {
     static var modeSolidHint: String { t("Un rettangolo pieno. Il più sicuro.", "A solid box. The safest.") }
     static var modePixel: String { t("Pixel", "Pixels") }
     static var modePixelHint: String { t("Blocchi grossi, meno invasivo.", "Large blocks, less stark.") }
+    static var noAudio: String {
+        t("Questo video non ha audio: non c'è niente da togliere.", "This video has no sound: nothing to remove.")
+    }
+    static var audioRemove: String { t("Togli l'audio", "Remove the sound") }
+    static var audioRemoveHint: String { t("Consigliato.", "Recommended.") }
+    static var audioKeep: String { t("Mantieni l'audio", "Keep the sound") }
+    static var audioKeepHint: String { t("Le voci possono identificare.", "Voices can identify people.") }
     static var marginHint: String {
         t("Allarga la copertura oltre il volto trovato: capelli, orecchie, profilo.",
           "Widens the cover beyond the detected face: hair, ears, profile.")
@@ -76,6 +88,9 @@ enum L {
 
     // Guide: picture
     static var analyzing: String { t("Cerco i volti…", "Looking for faces…") }
+    static func analyzing(_ pct: Int) -> String { t("Cerco i volti… \(pct)%", "Looking for faces… \(pct)%") }
+    static var play: String { t("Riproduci l'anteprima", "Play the preview") }
+    static var pause: String { t("Ferma", "Stop") }
     static var waiting: String { t("In attesa", "Waiting") }
     static func facesFound(_ n: Int) -> String {
         italian ? (n == 1 ? "1 volto trovato" : "\(n) volti trovati") : (n == 1 ? "1 face found" : "\(n) faces found")
@@ -90,16 +105,35 @@ enum L {
         t("Trascina col dito sull'immagine per coprire un'altra zona. Tocca un riquadro per spostarlo, ridimensionarlo dagli angoli o toglierlo.",
           "Drag on the picture to cover another area. Tap a box to move it, resize it from its corners or remove it.")
     }
+    static var editHintVideo: String {
+        t("I riquadri trovati seguono il volto: se uno non è un volto, spegni la sua traccia. Quelli disegnati restano fermi nell'intervallo che scegli.",
+          "Found boxes follow the face: if one is not a face, switch its track off. Drawn boxes stay still over the span you choose.")
+    }
     static var removeBox: String { t("Togli il riquadro", "Remove Box") }
+    static var selectHint: String {
+        t("Tocca un riquadro per modificarlo.", "Tap a box to change it.")
+    }
+    static var selectHintVideo: String {
+        t("Tocca un riquadro per spegnerne la traccia o cambiarne l'intervallo.",
+          "Tap a box to switch its track off or change its span.")
+    }
+    static var trackOff: String { t("Spegni la traccia", "Switch Track Off") }
+    static var trackOn: String { t("Riaccendi la traccia", "Switch Track On") }
+    static var startHere: String { t("Inizia qui", "Start Here") }
+    static var endHere: String { t("Finisci qui", "End Here") }
+    static func span(_ a: String, _ b: String) -> String { italian ? "Copre da \(a) a \(b)" : "Covers \(a) to \(b)" }
+    static var legendOff: String { t("spento", "off") }
     static var legendFound: String { t("trovato", "found") }
     static var legendUncertain: String { t("incerto", "uncertain") }
     static var legendDrawn: String { t("a mano", "by hand") }
     static var doneEditing: String { t("Fatto", "Done") }
 
     // Guide: result and export
-    static func summary(level: String, mode: String, padding: Int) -> String {
-        [levelLabel(level), mode == "pixel" ? modePixel : modeSolid,
-         italian ? "margine \(padding)%" : "margin \(padding)%"].joined(separator: "  ·  ")
+    static func summary(level: String, mode: String, padding: Int, audio: Bool?) -> String {
+        var parts = [levelLabel(level), mode == "pixel" ? modePixel : modeSolid,
+                     italian ? "margine \(padding)%" : "margin \(padding)%"]
+        if let audio { parts.append(audio ? t("con audio", "with sound") : t("senza audio", "no sound")) }
+        return parts.joined(separator: "  ·  ")
     }
     static var alwaysRemoved: String {
         t("Tolti sempre: posizione GPS, dispositivo, date e gli altri metadati.",
@@ -114,6 +148,7 @@ enum L {
           "“Save Image” is not offered: saving to Photos would send the file to iCloud too.")
     }
     static var preparing: String { t("Preparo il file…", "Preparing the file…") }
+    static func exporting(_ pct: Int) -> String { t("Esportazione \(pct)%", "Exporting \(pct)%") }
     static var cancel: String { t("Annulla", "Cancel") }
     static var saved: String { t("Salvato", "Saved") }
     static var shared: String { t("Condiviso", "Shared") }
@@ -126,7 +161,8 @@ enum L {
     }
     static var exportAnyway: String { t("Esporta comunque", "Export anyway") }
     static var interrupted: String {
-        t("L'app è andata in secondo piano: riprendo da capo.", "The app went to the background: starting again.")
+        t("Blurry è andato in secondo piano: il lavoro si è fermato e riparte da capo. Tienilo aperto finché finisce.",
+          "Blurry went to the background: the work stopped and starts again. Keep it open until it is done.")
     }
 
     // Queue
@@ -180,11 +216,11 @@ enum L {
           "The detector can miss faces. Always check the result and add any missing boxes by hand before sharing.")
     }
     static var welcomeLimits: String {
-        t("Corpi, tatuaggi, voci e luoghi possono ancora identificare una persona.",
-          "Bodies, tattoos, voices and places can still identify a person.")
+        t("Corpi, tatuaggi, voci e luoghi possono ancora identificare una persona. L'audio viene tolto, salvo una tua scelta esplicita.",
+          "Bodies, tattoos, voices and places can still identify a person. Sound is removed unless you explicitly choose to keep it.")
     }
     static var welcomeWorkflowTitle: String { t("Un file, pochi passi", "One file, a few steps") }
-    static var welcomeChoose: String { t("Scegli una foto", "Choose a photo") }
+    static var welcomeChoose: String { t("Scegli una foto o un video", "Choose a photo or a video") }
     static var welcomeReview: String { t("Scegli la copertura e correggi i riquadri", "Choose the cover and correct the boxes") }
     static var welcomeExport: String { t("Controlla il risultato ed esporta", "Check the result and export") }
     static var welcomeOriginal: String {

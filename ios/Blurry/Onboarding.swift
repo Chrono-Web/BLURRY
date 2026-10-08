@@ -96,12 +96,14 @@ struct WelcomeView: View {
             }
             HStack(spacing: 10) {
                 if page > 0 {
-                    Button(L.back) { page -= 1 }.buttonStyle(SecondaryButtonStyle())
+                    Button(L.back) { page -= 1 }.secondaryAction()
                 }
-                Button(page == 2 ? L.start : L.next) {
+                Button {
                     if page == 2 { store.beginGuidedSession() } else { page += 1 }
+                } label: {
+                    Wide(page == 2 ? L.start : L.next)
                 }
-                .buttonStyle(PrimaryButtonStyle())
+                .primaryAction()
             }
             Button(L.tipSkip) { store.finishOnboarding() }
                 .font(.callout)

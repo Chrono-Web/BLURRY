@@ -124,7 +124,7 @@ jobs:
         with:
           version: "0.12.22"
           enable-cache: false
-      - run: brew install exiftool
+      - run: brew install exiftool ffmpeg
       - run: uv sync --frozen
       - run: scripts/coreml/test-kit.sh
 

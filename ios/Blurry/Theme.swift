@@ -1,7 +1,8 @@
 import SwiftUI
 
-// The same look as the Mac app (macos/Sources/Blurry/Views.swift): Chrono's
-// green, hairlines, small monospace capitals, one white primary button.
+// The same colours as the Mac app (macos/Sources/Blurry/Views.swift): Chrono's
+// green and hairlines. Buttons are the system's own
+// (bordered, bordered prominent, toolbar items), tinted green.
 let accent = Color(red: 0x49 / 255, green: 0xDC / 255, blue: 0x18 / 255)
 let hairline = Color.white.opacity(0.10)
 
@@ -21,89 +22,97 @@ struct CornerTicks: Shape {
     }
 }
 
-struct SectionLabel: View {
+extension View {
+    /// The one main action of a screen: the system's prominent button, large.
+    /// Blurry's green is light, so the label is black for contrast.
+    func primaryAction() -> some View {
+        buttonStyle(.borderedProminent).controlSize(.large).foregroundStyle(.black)
+    }
+
+    /// The action beside it: the system's bordered button, large.
+    func secondaryAction() -> some View {
+        buttonStyle(.bordered).controlSize(.large)
+    }
+}
+
+/// A label that fills the button's width, for the large actions at the bottom.
+struct Wide: View {
     let text: String
-
-    var body: some View {
-        Text(text)
-            .font(.system(size: 10, weight: .medium, design: .monospaced))
-            .tracking(1.5)
-            .foregroundStyle(.secondary)
-    }
-}
-
-/// White button with black text: the one primary action.
-struct PrimaryButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var enabled
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.body.weight(.semibold))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 13)
-            .foregroundStyle(enabled ? Color.black : Color.white.opacity(0.35))
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(enabled ? Color.white.opacity(configuration.isPressed ? 0.8 : 1) : Color.white.opacity(0.08))
-            )
-    }
-}
-
-/// The secondary action beside it.
-struct SecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.body.weight(.medium))
-            .padding(.vertical, 13)
-            .padding(.horizontal, 18)
-            .foregroundStyle(.white)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.white.opacity(configuration.isPressed ? 0.16 : 0.08))
-            )
-    }
-}
-
-/// One choice in a step: a card, green when chosen.
-struct OptionCard: View {
-    let title: String
-    let hint: String
     var symbol: String?
-    let selected: Bool
-    let action: () -> Void
+
+    init(_ text: String, systemImage: String? = nil) {
+        self.text = text
+        symbol = systemImage
+    }
 
     var body: some View {
-        Button(action: action) {
-            HStack(alignment: .top, spacing: 10) {
-                if let symbol {
-                    Image(systemName: symbol)
-                        .font(.system(size: 15))
-                        .foregroundStyle(selected ? accent : .secondary)
-                        .frame(width: 20)
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.callout.weight(.medium))
-                    Text(hint)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.white.opacity(selected ? 0.07 : 0.025))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(selected ? accent.opacity(0.85) : hairline, lineWidth: 1)
-            )
-            .contentShape(Rectangle())
+        Group {
+            if let symbol { Label(text, systemImage: symbol) } else { Text(text) }
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(selected ? .isSelected : [])
-        .animation(.easeOut(duration: 0.12), value: selected)
+        .fontWeight(.semibold)
+        .frame(maxWidth: .infinity)
+    }
+}
+
+/// One option of a choice.
+struct Choice: Identifiable {
+    let id: String
+    let title: String
+    let detail: String
+    var symbol: String?
+}
+
+/// A choice as iOS shows it in Settings: an inset grouped list, one row per
+/// option with its explanation, a checkmark on the chosen one.
+struct ChoiceList: View {
+    let choices: [Choice]
+    let selected: String
+    let select: (String) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(choices.enumerated()), id: \.element.id) { i, choice in
+                Button { select(choice.id) } label: {
+                    HStack(spacing: 12) {
+                        if let symbol = choice.symbol {
+                            Image(systemName: symbol)
+                                .foregroundStyle(accent)
+                                .frame(width: 24)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(choice.title).foregroundStyle(.primary)
+                            Text(choice.detail)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 8)
+                        if choice.id == selected {
+                            Image(systemName: "checkmark")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(accent)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(RowButtonStyle())
+                .accessibilityAddTraits(choice.id == selected ? .isSelected : [])
+                if i < choices.count - 1 {
+                    Divider().padding(.leading, choice.symbol == nil ? 16 : 52)
+                }
+            }
+        }
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+/// A list row's own highlight while pressed.
+private struct RowButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.background(configuration.isPressed ? Color(.systemGray4) : Color.clear)
     }
 }

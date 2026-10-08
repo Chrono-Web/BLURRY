@@ -312,4 +312,240 @@ enum Containers {
         }
         return found
     }
+
+    // MARK: MOV / MP4
+
+    /// The moov box of a file that can be gigabytes long: walk the top-level
+    /// box headers and read only moov (capped at 256 MB).
+    static func moovBytes(_ url: URL) -> [UInt8]? { moovLocation(url)?.1 }
+
+    /// Tags as FFmpeg names them, for the rules of video_io._metadata_found.
+    private static let udtaNames: [String: String] = [
+        "\u{A9}xyz": "location", "loci": "location", "\u{A9}day": "date", "\u{A9}nam": "title",
+        "\u{A9}too": "encoder", "\u{A9}mak": "make", "\u{A9}mod": "model", "\u{A9}cmt": "comment",
+        "\u{A9}ART": "artist", "\u{A9}alb": "album", "\u{A9}swr": "encoder", "\u{A9}des": "description",
+    ]
+    /// Container tags that describe the file format itself, not the recording.
+    private static let technicalTags: Set<String> = [
+        "major_brand", "minor_version", "compatible_brands", "handler_name", "vendor_id", "language",
+        "duration", "encoder",
+    ]
+
+    /// video_io._metadata_found from the file's boxes (AVFoundation hides the
+    /// names of FFmpeg-written keys). Rotation is added by VideoIn.probe.
+    static func movMetadata(_ url: URL) -> Set<String> {
+        guard let d = moovBytes(url) else { return [] }
+        var found: Set<String> = []
+        var tags: [String] = []
+        let moov = bmffBoxes(d, in: 8..<d.count)
+        func latin(_ r: Range<Int>) -> String { String(bytes: d[r], encoding: .isoLatin1) ?? "" }
+
+        // ilst under a meta box: with a keys box, items are numbered keys;
+        // without, they are four-character codes.
+        func readMeta(_ meta: BMFFBox, fullBox: Bool) {
+            let inner = bmffBoxes(d, in: (meta.body.lowerBound + (fullBox ? 4 : 0))..<meta.body.upperBound)
+            var keys: [String] = []
+            if let k = inner.first(where: { $0.type == "keys" }) {
+                var i = k.body.lowerBound + 8
+                while i + 8 <= k.body.upperBound {
+                    let size = Int(d[i]) << 24 | Int(d[i + 1]) << 16 | Int(d[i + 2]) << 8 | Int(d[i + 3])
+                    guard size >= 8, i + size <= k.body.upperBound else { break }
+                    keys.append(String(decoding: d[(i + 8)..<(i + size)], as: UTF8.self))
+                    i += size
+                }
+            }
+            for ilst in inner where ilst.type == "ilst" {
+                for item in bmffBoxes(d, in: ilst.body) {
+                    let code = latin(item.range4(d))
+                    if !keys.isEmpty, let n = item.index(d), n >= 1, n <= keys.count {
+                        tags.append(keys[n - 1])
+                    } else if code == "covr" {
+                        tags.append("cover")
+                    } else {
+                        tags.append(udtaNames[code] ?? code)
+                    }
+                }
+            }
+        }
+
+        for box in moov {
+            switch box.type {
+            case "mvhd":
+                // FFmpeg turns a non-zero creation time into a creation_time tag.
+                let v = d[box.body.lowerBound]
+                let start = box.body.lowerBound + 4
+                let n = v == 1 ? 8 : 4
+                if start + n <= box.body.upperBound, d[start..<(start + n)].contains(where: { $0 != 0 }) {
+                    tags.append("creation_time")
+                }
+            case "udta":
+                for child in bmffBoxes(d, in: box.body) {
+                    let code = latin(child.body.lowerBound - 4..<child.body.lowerBound)
+                    switch code {
+                    case "chpl": found.insert("chapters")
+                    case "meta": readMeta(child, fullBox: true)
+                    default:
+                        if let name = udtaNames[code] { tags.append(name) } else if code.hasPrefix("\u{A9}") { tags.append(code) }
+                    }
+                }
+            case "meta":
+                readMeta(box, fullBox: false)
+            default:
+                break
+            }
+        }
+
+        var videoTracks = 0, audioTracks = 0
+        var chapterTracks: Set<Int> = []
+        var trackKinds: [(id: Int, handler: String)] = []
+        for trak in moov where trak.type == "trak" {
+            let parts = bmffBoxes(d, in: trak.body)
+            var id = 0
+            if let tkhd = parts.first(where: { $0.type == "tkhd" }) {
+                let v = d[tkhd.body.lowerBound]
+                let at = tkhd.body.lowerBound + 4 + (v == 1 ? 16 : 8)
+                if at + 4 <= tkhd.body.upperBound {
+                    id = Int(d[at]) << 24 | Int(d[at + 1]) << 16 | Int(d[at + 2]) << 8 | Int(d[at + 3])
+                }
+            }
+            if let tref = parts.first(where: { $0.type == "tref" }) {
+                for ref in bmffBoxes(d, in: tref.body) where ref.type == "chap" {
+                    var i = ref.body.lowerBound
+                    while i + 4 <= ref.body.upperBound {
+                        chapterTracks.insert(Int(d[i]) << 24 | Int(d[i + 1]) << 16 | Int(d[i + 2]) << 8 | Int(d[i + 3]))
+                        i += 4
+                    }
+                }
+            }
+            if let udta = parts.first(where: { $0.type == "udta" }), !bmffBoxes(d, in: udta.body).isEmpty {
+                found.insert("track_tags")
+            }
+            if let mdia = parts.first(where: { $0.type == "mdia" }),
+               let hdlr = bmffBoxes(d, in: mdia.body).first(where: { $0.type == "hdlr" }),
+               hdlr.body.count >= 12 {
+                let handler = latin((hdlr.body.lowerBound + 8)..<(hdlr.body.lowerBound + 12))
+                trackKinds.append((id, handler))
+            }
+        }
+        for (id, handler) in trackKinds {
+            switch handler {
+            case "vide": videoTracks += 1
+            case "soun": audioTracks += 1
+            case "text", "sbtl", "subt", "clcp":
+                // A track that holds chapter titles is not a subtitle track for FFmpeg.
+                if chapterTracks.contains(id) { found.insert("chapters") } else { found.insert("subtitle_track") }
+            case "tmcd", "meta", "data", "gpmd", "camm":
+                found.insert("data_track")
+            default:
+                break
+            }
+        }
+        if videoTracks > 1 { found.insert("extra_video_track") }
+        if audioTracks > 1 { found.insert("extra_audio_track") }
+
+        for tag in tags {
+            let k = tag.lowercased()
+            if k == "cover" { found.insert("cover_art"); continue }
+            if !technicalTags.contains(k) { found.insert("container_tags") }
+            if k.contains("location") || k == "com.apple.quicktime.location.iso6709" || k == "gps" {
+                found.insert("location")
+            }
+            if k.contains("creation_time") || k == "date" { found.insert("creation_time") }
+            if k.hasPrefix("com.apple.quicktime.") && (k.contains("make") || k.contains("model")) {
+                found.insert("device")
+            }
+        }
+        return found
+    }
 }
+
+extension Containers {
+    /// The writer's own traces in a video Blurry just wrote, checked and removed.
+    ///
+    /// AVAssetWriter stamps the export time as creation and modification time
+    /// in mvhd, tkhd and mdhd (VERIFICA 5c, 2026-10-07): not when the video was
+    /// shot, but still when it was prepared. Those fields are zeroed in place,
+    /// so no offset moves. Then the structure is checked: only video and audio
+    /// tracks, at most two, and no udta, meta or tref anywhere; anything else
+    /// fails the export rather than leave a trace.
+    static func cleanMovie(_ url: URL) throws {
+        guard let (offset, d) = moovLocation(url) else { throw ContainerError(description: "MP4: no moov") }
+        var zero: [Range<Int>] = []   // byte ranges inside moov
+        let allowedTop: Set<String> = ["mvhd", "trak", "iods"]
+        let allowedTrak: Set<String> = ["tkhd", "edts", "mdia"]
+        func times(_ box: BMFFBox) {
+            let v = d[box.body.lowerBound]
+            let n = v == 1 ? 8 : 4
+            let start = box.body.lowerBound + 4
+            if start + 2 * n <= box.body.upperBound { zero.append(start..<(start + 2 * n)) }
+        }
+        let top = bmffBoxes(d, in: 8..<d.count)
+        var tracks = 0
+        for box in top {
+            guard allowedTop.contains(box.type) else { throw ContainerError(description: "MP4: unexpected \(box.type)") }
+            if box.type == "mvhd" { times(box) }
+            guard box.type == "trak" else { continue }
+            tracks += 1
+            for part in bmffBoxes(d, in: box.body) {
+                guard allowedTrak.contains(part.type) else {
+                    throw ContainerError(description: "MP4: unexpected \(part.type) in a track")
+                }
+                if part.type == "tkhd" { times(part) }
+                guard part.type == "mdia" else { continue }
+                for m in bmffBoxes(d, in: part.body) {
+                    if m.type == "mdhd" { times(m) }
+                    if m.type == "hdlr", m.body.count >= 12 {
+                        let handler = String(bytes: d[(m.body.lowerBound + 8)..<(m.body.lowerBound + 12)], encoding: .isoLatin1)
+                        guard handler == "vide" || handler == "soun" else {
+                            throw ContainerError(description: "MP4: unexpected track \(handler ?? "?")")
+                        }
+                    }
+                    if m.type == "udta" || m.type == "meta" { throw ContainerError(description: "MP4: metadata in a track") }
+                }
+            }
+        }
+        guard tracks >= 1 && tracks <= 2 else { throw ContainerError(description: "MP4: \(tracks) tracks") }
+        let fh = try FileHandle(forUpdating: url)
+        defer { try? fh.close() }
+        for r in zero {
+            try fh.seek(toOffset: offset + UInt64(r.lowerBound))
+            try fh.write(contentsOf: Data(count: r.count))
+        }
+        try fh.synchronize()
+    }
+
+    /// Where moov starts in the file, and its bytes.
+    static func moovLocation(_ url: URL) -> (UInt64, [UInt8])? {
+        guard let fh = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? fh.close() }
+        var offset: UInt64 = 0
+        while true {
+            guard (try? fh.seek(toOffset: offset)) != nil,
+                  let head = try? fh.read(upToCount: 16), head.count >= 8 else { return nil }
+            let h = [UInt8](head)
+            var size = UInt64(h[0]) << 24 | UInt64(h[1]) << 16 | UInt64(h[2]) << 8 | UInt64(h[3])
+            if size == 1, h.count >= 16 { size = h[8..<16].reduce(0) { $0 << 8 | UInt64($1) } }
+            guard size >= 8 else { return nil }
+            if String(decoding: h[4..<8], as: UTF8.self) == "moov" {
+                guard size <= 256 * 1024 * 1024, (try? fh.seek(toOffset: offset)) != nil,
+                      let data = try? fh.read(upToCount: Int(size)) else { return nil }
+                return (offset, [UInt8](data))
+            }
+            offset += size
+        }
+    }
+}
+
+private extension Containers.BMFFBox {
+    /// The four bytes of the box type, just before its body.
+    func range4(_ d: [UInt8]) -> Range<Int> { (body.lowerBound - 4)..<body.lowerBound }
+
+    /// An ilst item whose type is a number: the index into the keys box.
+    func index(_ d: [UInt8]) -> Int? {
+        let r = range4(d)
+        let n = Int(d[r.lowerBound]) << 24 | Int(d[r.lowerBound + 1]) << 16 | Int(d[r.lowerBound + 2]) << 8
+            | Int(d[r.lowerBound + 3])
+        return n > 0 && n < 0x10000 ? n : nil
+    }
+}
+

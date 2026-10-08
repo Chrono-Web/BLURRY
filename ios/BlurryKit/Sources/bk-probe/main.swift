@@ -26,6 +26,21 @@ guard args.count >= 2 else {
     FileHandle.standardError.write(Data("usage: bk-probe <image> [cpu|all]\n".utf8))
     exit(2)
 }
+if args[1] == "--render", args.count == 4 {
+    // bk-probe --render IN OUT: re-encode a video with nothing covered, to
+    // inspect what the writer puts in the file.
+    do {
+        let info = try await VideoIn.probe(URL(fileURLWithPath: args[2]))
+        let n = try await VideoIn.frames(URL(fileURLWithPath: args[2])) { _, _, _ in true }
+        let audio = try await VideoOut.render(URL(fileURLWithPath: args[2]), to: URL(fileURLWithPath: args[3]),
+                                              frameCount: n, keepAudio: true) { _, _ in }
+        print("\(info) frames \(n) audio \(audio)")
+    } catch {
+        FileHandle.standardError.write(Data("bk-probe: \(error)\n".utf8))
+        exit(1)
+    }
+    exit(0)
+}
 let units: MLComputeUnits = args.count > 2 && args[2] == "cpu" ? .cpuOnly : .all
 do {
     let detector = try FaceDetector(level: Levels.shared.mostSensitive, computeUnits: units)

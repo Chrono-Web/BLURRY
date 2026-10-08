@@ -55,7 +55,7 @@ fails, the partial file is removed.
 
 ## iPhone and iPad
 
-The iOS app (photos only, for now) has its own engine written in Swift. On every change, CI checks
+The iOS app has its own engine written in Swift. On every change, CI checks
 it against the desktop engine: same boxes, same covering, same metadata removed. The rules above
 apply, with these differences:
 
@@ -74,6 +74,15 @@ apply, with these differences:
 - **What stays on the device.** Only the preferences (sensitivity, cover, margin) and whether you
   have seen the guide. Copies left by the pickers are deleted when Blurry starts and whenever it
   leaves the screen.
+- **Videos are copied while you work on them.** A video is too large to keep in memory: while it
+  is in Blurry's queue a copy sits in the app's private temporary folder, protected by the
+  device's encryption. The copy is deleted when you remove the video from the queue, and every
+  time Blurry starts. The clean file waits in the same folder only until the save or share sheet
+  closes.
+- **Videos: MP4, MOV and M4V only.** iOS cannot read MKV, WebM or AVI. HDR videos from the iPhone
+  are written in SDR, as on the desktop.
+- **Keep Blurry open while it works.** If it goes to the background during an analysis or an
+  export, the work stops (iOS would cut it short anyway) and starts again when you come back.
 - **The original stays in your library**, and in iCloud Photos if you use it: see "The original is
   still there", and remember the "Recently Deleted" album.
 - **Unsigned install.** The `.ipa` is not signed by Apple; AltStore or SideStore sign it with your

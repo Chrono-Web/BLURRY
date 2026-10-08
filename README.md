@@ -58,7 +58,7 @@ on Linux only in CI so far. Check every result before sharing it, and report pro
 [Issues](https://github.com/Chrono-Web/BLURRY/issues). System libraries, uninstalling and
 the open checks are in [desktop distribution](docs/DISTRIBUZIONE.md).
 
-### iPhone and iPad (in testing, photos only)
+### iPhone and iPad (in testing)
 
 iOS 17 or later. Blurry for iOS is not on the App Store and is not signed by Apple: you install it
 with [AltStore](https://altstore.io) or [SideStore](https://sidestore.io), which sign it with your
@@ -70,8 +70,8 @@ own Apple ID, free.
 2. Open it with AltStore or SideStore. With a free Apple ID the app must be refreshed every
    7 days: AltStore does it for you while AltServer runs on your computer.
 
-The iOS app covers photos with its own engine written in Swift, checked against the desktop
-engine on every change; videos come later. What changes on a phone is in the
+The iOS app covers photos and videos (MP4, MOV, M4V) with its own engine written in Swift,
+checked against the desktop engine on every change. What changes on a phone is in the
 [threat model](THREAT_MODEL.md#iphone-and-ipad).
 
 ### With Python (engine, servers, containers, CLI and optional Qt)
