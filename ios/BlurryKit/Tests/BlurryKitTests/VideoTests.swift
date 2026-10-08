@@ -90,11 +90,12 @@ final class VideoTests: XCTestCase {
     }
 
     /// Decoded by AVFoundation instead of FFmpeg: the same faces in every frame,
-    /// IoU >= 0.9 each. The frames differ by one level here and there (YUV to
-    /// RGB), which moves a face whose score is within `margin` of the threshold
-    /// in or out, and its box: those may differ. The test videos are encoded by
-    /// the FFmpeg of the machine, so which faces are near the threshold changes
-    /// with its version.
+    /// IoU >= 0.8 each. The frames differ by one level here and there (YUV to
+    /// RGB), and on the faces of these videos (45 pixels) that moves a box by
+    /// up to 3 pixels, IoU 0.85; a face scoring within `margin` of the
+    /// threshold may also come in or go out. The test videos are encoded by the
+    /// FFmpeg of the machine, so where this happens changes with its version.
+    /// On identical pixels the boxes are identical (the test above).
     func testDetectionsPerFrame() async throws {
         let det = try Self.detector.get()
         let threshold = try Levels.shared.get(Levels.shared.mostSensitive).confidence
@@ -123,7 +124,7 @@ final class VideoTests: XCTestCase {
                 return true
             }
             XCTAssertEqual(problems, [], name)
-            XCTAssertGreaterThanOrEqual(worst, 0.9, "\(name) \(worstCase)")
+            XCTAssertGreaterThanOrEqual(worst, 0.8, "\(name) \(worstCase)")
             print(String(format: "  %@: min IoU %.3f (%.3f with the faces near the threshold), %d near the threshold differ",
                          name, worst, worstAny, near), worstCase)
         }
