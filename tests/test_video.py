@@ -6,7 +6,7 @@ import av
 import numpy as np
 import pytest
 from conftest import need, run_blurry
-from media import exiftool, ffprobe, frames_from, inject_metadata, write_video
+from media import exiftool, ffprobe, frames_from, inject_metadata, write_hlg_video, write_video
 
 from blurry_opsec.detect import FaceDetector
 
@@ -113,3 +113,23 @@ def test_odd_size_avi_and_mkv(tmp_path, outdir):
         res = run_blurry(src, "-o", outdir, "--json")
         assert res.returncode == 0, res.stderr
         assert report(res)["frames"] == 8
+
+
+def test_hlg_video_keeps_its_colour(tmp_path):
+    """HDR as phones record it (HEVC 10 bit, HLG, BT.2020) is read as the SDR
+    picture it shows, not washed out: read as plain 8-bit video it lost almost
+    half of its saturation (field test of the iOS app, 2026-10-08)."""
+    from blurry_opsec import video_io
+
+    src = frames_from("sts125_crew.jpg", 640, 360, 3)
+    path = tmp_path / "hdr.mp4"
+    write_hlg_video(path, src)
+    got = [bgr[..., ::-1] for bgr in video_io.iter_frames(path)]
+    assert len(got) == 3
+
+    def saturation(a):
+        return float((a.max(-1).astype(int) - a.min(-1)).mean())
+
+    for g, s in zip(got, src, strict=True):
+        assert np.abs(g.astype(int) - s).mean() < 8
+        assert saturation(g) == pytest.approx(saturation(s), rel=0.15)

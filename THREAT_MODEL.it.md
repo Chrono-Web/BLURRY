@@ -83,9 +83,11 @@ qui sopra valgono, con queste differenze:
   di Blurry. Il file pulito resta nella stessa cartella solo finché il foglio di salvataggio o di
   condivisione non si chiude.
 - **Video: solo MP4, MOV e M4V.** iOS non legge MKV, WebM e AVI. I video HDR dell'iPhone escono in
-  SDR, come sul desktop.
-- **Tieni Blurry aperto mentre lavora.** Se va in secondo piano durante un'analisi o
-  un'esportazione, il lavoro si ferma (iOS lo interromperebbe comunque) e riparte quando torni.
+  SDR, convertiti come sul desktop.
+- **In secondo piano.** Da iOS 26, un'analisi o l'esportazione di un video continua anche se
+  esci da Blurry, se iOS concede il tempo: l'avanzamento compare nella schermata di blocco e nella
+  Dynamic Island, senza nomi di file. Altrimenti, e prima di iOS 26, il lavoro si ferma e riparte
+  quando torni.
 - **L'originale resta nella libreria**, e su Foto di iCloud se lo usi: vedi «L'originale è ancora
   lì», e ricorda l'album «Eliminati di recente».
 - **Installazione non firmata.** L'`.ipa` non è firmata da Apple: AltStore o SideStore la firmano

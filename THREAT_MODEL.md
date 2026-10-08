@@ -80,9 +80,11 @@ apply, with these differences:
   time Blurry starts. The clean file waits in the same folder only until the save or share sheet
   closes.
 - **Videos: MP4, MOV and M4V only.** iOS cannot read MKV, WebM or AVI. HDR videos from the iPhone
-  are written in SDR, as on the desktop.
-- **Keep Blurry open while it works.** If it goes to the background during an analysis or an
-  export, the work stops (iOS would cut it short anyway) and starts again when you come back.
+  are written in SDR, converted as on the desktop.
+- **In the background.** From iOS 26, an analysis or a video export goes on when you leave
+  Blurry, if iOS grants the time: its progress shows on the Lock Screen and in the Dynamic Island,
+  with no file names. Otherwise, and before iOS 26, the work stops and starts again when you come
+  back.
 - **The original stays in your library**, and in iCloud Photos if you use it: see "The original is
   still there", and remember the "Recently Deleted" album.
 - **Unsigned install.** The `.ipa` is not signed by Apple; AltStore or SideStore sign it with your

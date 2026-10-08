@@ -246,7 +246,8 @@ PyPI shows its provenance on the project page.
 ## Known limits
 
 - Faces in profile, in the dark, very small or turned sideways can be missed (see above).
-- HDR videos from phones (10-bit HEVC) come out as 8-bit SDR H.264: colours can look flatter.
+- HDR videos from phones (HLG, 10-bit HEVC) are converted to SDR and written as 8-bit H.264, with
+  their colours. PQ HDR videos, rare outside cinema, can look flatter.
 - On macOS, processing a video prints a harmless `objc ... implemented in both` warning, because
   OpenCV and PyAV each bundle their own FFmpeg.
 

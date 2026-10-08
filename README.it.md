@@ -248,8 +248,8 @@ ne mostra la provenienza nella pagina del progetto.
 ## Limiti noti
 
 - Volti di profilo, al buio, molto piccoli o girati di lato possono sfuggire (vedi sopra).
-- I video HDR del telefono (HEVC a 10 bit) escono in H.264 SDR a 8 bit: i colori possono sembrare
-  più spenti.
+- I video HDR del telefono (HLG, HEVC a 10 bit) si convertono in SDR ed escono in H.264 a 8 bit,
+  con i colori giusti. I video HDR in PQ, rari fuori dal cinema, possono sembrare più spenti.
 - Su macOS, elaborando un video compare un avviso innocuo `objc ... implemented in both`, perché
   OpenCV e PyAV portano ciascuno la propria copia di FFmpeg.
 

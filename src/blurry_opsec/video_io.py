@@ -14,6 +14,8 @@ original timestamps are kept so audio stays in sync.
 from __future__ import annotations
 
 import contextlib
+import functools
+import math
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from fractions import Fraction
@@ -146,10 +148,92 @@ def _metadata_found(container, video) -> list[str]:
     return sorted(found)
 
 
+# AVCOL_TRC_ARIB_STD_B67: HLG, the HDR that phones record.
+_TRC_HLG = 18
+
+
+@functools.cache
+def _hlg_tables() -> tuple[np.ndarray, np.ndarray]:
+    """Inverse HLG OETF (BT.2100) divided by the scene light of HLG 75 %, the
+    SDR white of BT.2408 (1.0 = white), on 4096 steps; and linear -> sRGB 8 bit
+    on 16384 steps. The same tables as BlurryKit (Orientation.rgbHLG)."""
+    a = 0.17883277
+    b, c = 1 - 4 * a, 0.5 - a * math.log(4 * a)
+
+    def scene(v: float) -> float:
+        return v * v / 3 if v <= 0.5 else (math.exp((v - c) / a) + b) / 12
+
+    white = scene(0.75)
+    lin = np.array([scene(i / 4095) / white for i in range(4096)], dtype=np.float32)
+    srgb = []
+    for i in range(16384):
+        x = i / 16383
+        v = 12.92 * x if x <= 0.0031308 else 1.055 * x ** (1 / 2.4) - 0.055
+        srgb.append(max(0, min(255, math.floor(v * 255 + 0.5))))
+    return lin, np.array(srgb, dtype=np.uint8)
+
+
+def _hlg_to_bgr(frame) -> np.ndarray:
+    """HLG to SDR as BT.2408 does for scene light: BT.2020 matrix, inverse
+    HLG OETF, HLG 75 % as white, a soft knee above 0.9, BT.2020 -> BT.709
+    primaries (BT.2087), sRGB curve. Read as plain 8-bit video an HLG frame
+    looks washed out. Mirrors BlurryKit's Orientation.rgbHLG step by step, in
+    float32, so the app on a phone sees the same picture."""
+    if frame.format.name != "yuv420p10le":
+        frame = frame.reformat(format="yuv420p10le")
+    w, h = frame.width, frame.height
+    cw, ch = (w + 1) // 2, (h + 1) // 2
+
+    def plane(i: int, pw: int, ph: int) -> np.ndarray:
+        p = frame.planes[i]
+        arr = np.frombuffer(memoryview(p), dtype="<u2").reshape(-1, p.line_size // 2)
+        return arr[:ph, :pw].astype(np.float32)
+
+    f = np.float32
+    full = frame.color_range == 2  # AVCOL_RANGE_JPEG
+    y = plane(0, w, h)
+    u = np.repeat(np.repeat(plane(1, cw, ch), 2, axis=0), 2, axis=1)[:h, :w]
+    v = np.repeat(np.repeat(plane(2, cw, ch), 2, axis=0), 2, axis=1)[:h, :w]
+    if full:
+        y, cb, cr = y / f(1023), (u - f(512)) / f(1023), (v - f(512)) / f(1023)
+    else:
+        y, cb, cr = (y - f(64)) / f(876), (u - f(512)) / f(896), (v - f(512)) / f(896)
+    lin_t, srgb_t = _hlg_tables()
+
+    def lin(x: np.ndarray) -> np.ndarray:
+        return lin_t[(np.clip(x, f(0), f(1)) * f(4095) + f(0.5)).astype(np.int32)]
+
+    r = lin(y + f(1.4746) * cr)
+    g = lin(y - f(0.16455) * cb - f(0.57135) * cr)
+    bl = lin(y + f(1.8814) * cb)
+
+    def enc(x: np.ndarray) -> np.ndarray:
+        # Highlights above white are compressed into the top 10 % instead of clipped.
+        k = np.where(
+            x <= f(0.9), x, f(0.9) + f(0.1) * (f(1) - f(1) / (f(1) + (x - f(0.9)) / f(0.1)))
+        )
+        return srgb_t[(np.clip(k, f(0), f(1)) * f(16383) + f(0.5)).astype(np.int32)]
+
+    out = np.empty((h, w, 3), dtype=np.uint8)
+    out[..., 2] = enc(f(1.6605) * r - f(0.5876) * g - f(0.0728) * bl)
+    out[..., 1] = enc(f(-0.1246) * r + f(1.1329) * g - f(0.0083) * bl)
+    out[..., 0] = enc(f(-0.0182) * r - f(0.1006) * g + f(1.1187) * bl)
+    return out
+
+
+def _to_bgr(frame) -> np.ndarray:
+    """BGR as stored. HLG, what phones record as HDR, gets its own conversion;
+    everything else FFmpeg's plain one, as before (PQ video, rare outside
+    cinema, still looks washed out)."""
+    if frame.color_trc == _TRC_HLG:
+        return _hlg_to_bgr(frame)
+    return frame.to_ndarray(format="bgr24")
+
+
 def _rotate(frame) -> np.ndarray:
     """BGR array in display orientation. PyAV reports the display matrix angle
     counter-clockwise, which is also np.rot90's direction."""
-    arr = frame.to_ndarray(format="bgr24")
+    arr = _to_bgr(frame)
     k = int(round((frame.rotation or 0) / 90)) % 4
     return np.ascontiguousarray(np.rot90(arr, k)) if k else arr
 

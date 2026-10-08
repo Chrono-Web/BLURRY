@@ -147,7 +147,7 @@ def make_videos(d: Path) -> list[Path]:
     a 90° display matrix, location, device, dates, chapters, subtitles, a data
     track and cover art) and a plain landscape one with sound."""
     sys.path.insert(0, str(ROOT / "tests"))
-    from media import TOOLS, frames_from, inject_metadata, write_video
+    from media import TOOLS, frames_from, inject_metadata, write_hlg_video, write_video
 
     work = d / "work"
     work.mkdir(parents=True, exist_ok=True)
@@ -161,6 +161,9 @@ def make_videos(d: Path) -> list[Path]:
         print("ffmpeg missing: phone.mov skipped")
     write_video(d / "landscape.mp4", frames_from("sts125_crew.jpg", 960, 540, 45), fps=30)
     made.append(d / "landscape.mp4")
+    # HDR as phones record it: the engine's HLG -> SDR conversion and BlurryKit's must agree.
+    write_hlg_video(d / "hdr.mp4", frames_from("sts125_crew.jpg", 640, 360, 15))
+    made.append(d / "hdr.mp4")
     shutil.rmtree(work)
     return made
 
