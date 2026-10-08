@@ -160,9 +160,17 @@ enum L {
           "If there are faces in the file, they will stay uncovered. Try a higher sensitivity.")
     }
     static var exportAnyway: String { t("Esporta comunque", "Export anyway") }
+    // In the background (iOS 26): on the Lock Screen and in the Dynamic Island.
+    // Never a file name there.
+    static var bgTitle: String { "Blurry" }
+    static func bgAnalyzing(_ i: Int, _ n: Int) -> String {
+        n == 1 ? t("Cerco i volti", "Looking for faces")
+               : (italian ? "Cerco i volti: file \(i) di \(n)" : "Looking for faces: file \(i) of \(n)")
+    }
+    static var bgExporting: String { t("Preparo il file pulito", "Preparing the clean file") }
     static var interrupted: String {
-        t("Blurry è andato in secondo piano: il lavoro si è fermato e riparte da capo. Tienilo aperto finché finisce.",
-          "Blurry went to the background: the work stopped and starts again. Keep it open until it is done.")
+        t("Blurry è andato in secondo piano e iOS ha fermato il lavoro: riparte da capo. Tienilo aperto finché finisce.",
+          "Blurry went to the background and iOS stopped the work: it starts again. Keep it open until it is done.")
     }
 
     // Queue

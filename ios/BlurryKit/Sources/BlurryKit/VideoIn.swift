@@ -81,12 +81,12 @@ public enum VideoIn {
         let (natural, transform, formats) = try await video.load(.naturalSize, .preferredTransform, .formatDescriptions)
         let reader = try AVAssetReader(asset: asset)
         if let startTime { reader.timeRange = CMTimeRange(start: startTime, duration: .positiveInfinity) }
-        let output = AVAssetReaderTrackOutput(track: video, outputSettings: Orientation.readerSettings)
+        let orient = Orientation(natural: natural, transform: transform, format: formats.first)
+        let output = AVAssetReaderTrackOutput(track: video, outputSettings: orient.readerSettings)
         output.alwaysCopiesSampleData = false
         reader.add(output)
         guard reader.startReading() else { throw InputError("not a readable video, or a container type that is not accepted") }
         defer { reader.cancelReading() }
-        let orient = Orientation(natural: natural, transform: transform, format: formats.first)
         var index = startTime == nil ? 0 : start
         while let sample = output.copyNextSampleBuffer() {
             guard let pixels = CMSampleBufferGetImageBuffer(sample) else { continue }
@@ -123,21 +123,48 @@ public enum VideoIn {
 /// buffers' own attachment says BT.709 even then), limited or full range.
 /// AVFoundation's BGRA output differs from FFmpeg's by about 4 levels on
 /// average (VERIFICA 5c).
+///
+/// HDR is the exception. Read as 8-bit BT.601 it looks washed out (field test
+/// 2026-10-08). HLG, what the iPhone records, is read at 10 bits and converted
+/// here as BT.2408 does for scene light: BT.2020 matrix, inverse HLG OETF,
+/// HLG 75 % as SDR white, a soft knee above it, BT.2020 -> BT.709 primaries,
+/// sRGB curve. PQ and other BT.2020 video is left to the reader's own
+/// conversion to BT.709.
 struct Orientation {
-    static let readerSettings: [String: Any] = [
-        kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
-    ]
+    let readerSettings: [String: Any]
 
     let storedWidth: Int, storedHeight: Int
     let width: Int, height: Int
     private let inverse: CGAffineTransform
     private let bt709: Bool
+    private let hlg: Bool
 
     init(natural: CGSize, transform: CGAffineTransform, format: CMFormatDescription? = nil) {
         let declared = format.flatMap {
             CMFormatDescriptionGetExtension($0, extensionKey: kCMFormatDescriptionExtension_YCbCrMatrix) as? String
         }
-        bt709 = declared == (kCMFormatDescriptionYCbCrMatrix_ITU_R_709_2 as String)
+        func ext(_ key: CFString) -> String? {
+            format.flatMap { CMFormatDescriptionGetExtension($0, extensionKey: key) as? String }
+        }
+        let transfer = ext(kCMFormatDescriptionExtension_TransferFunction)
+        let wide = ext(kCMFormatDescriptionExtension_ColorPrimaries) == (kCMFormatDescriptionColorPrimaries_ITU_R_2020 as String)
+            || declared == (kCMFormatDescriptionYCbCrMatrix_ITU_R_2020 as String)
+            || transfer == (kCMFormatDescriptionTransferFunction_ITU_R_2100_HLG as String)
+            || transfer == (kCMFormatDescriptionTransferFunction_SMPTE_ST_2084_PQ as String)
+        hlg = transfer == (kCMFormatDescriptionTransferFunction_ITU_R_2100_HLG as String)
+        var settings: [String: Any] = [
+            kCVPixelBufferPixelFormatTypeKey as String: hlg ? kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange
+                                                            : kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+        ]
+        if wide && !hlg {
+            settings[AVVideoColorPropertiesKey] = [
+                AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
+                AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
+                AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
+            ]
+        }
+        readerSettings = settings
+        bt709 = wide || declared == (kCMFormatDescriptionYCbCrMatrix_ITU_R_709_2 as String)
         storedWidth = Int(natural.width.rounded())
         storedHeight = Int(natural.height.rounded())
         let rect = CGRect(origin: .zero, size: natural).applying(transform).standardized
@@ -159,6 +186,9 @@ struct Orientation {
     }
 
     func rgb(_ buffer: CVPixelBuffer) -> RGBImage {
+        if CVPixelBufferGetPixelFormatType(buffer) == kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange {
+            return rgbHLG(buffer)
+        }
         CVPixelBufferLockBaseAddress(buffer, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
         let bw = CVPixelBufferGetWidth(buffer), bh = CVPixelBufferGetHeight(buffer)
@@ -194,6 +224,67 @@ struct Orientation {
                     o[d] = clamp(y + rv * cr)
                     o[d + 1] = clamp(y - gu * cb - gv * cr)
                     o[d + 2] = clamp(y + bu * cb)
+                }
+            }
+        }
+        return RGBImage(width: w, height: h, pixels: out)
+    }
+
+    /// Display pixel -> stored pixel, for every pixel of the output.
+    @inline(__always)
+    private func source(_ dx: Int, _ dy: Int, identity: Bool, bw: Int, bh: Int) -> (Int, Int) {
+        if identity { return (dx, dy) }
+        let px = Double(dx) + 0.5, py = Double(dy) + 0.5, t = inverse
+        return (min(bw - 1, max(0, Int((t.a * px + t.c * py + t.tx).rounded(.down)))),
+                min(bh - 1, max(0, Int((t.b * px + t.d * py + t.ty).rounded(.down)))))
+    }
+
+    /// Inverse HLG OETF (BT.2100) on a non-linear value, divided by the scene
+    /// light of HLG 75 % (SDR white, BT.2408): 1.0 is white.
+    private static let hlgLinear: [Float] = (0...4095).map { i in
+        let e = Double(i) / 4095
+        let a = 0.17883277, b = 1 - 4 * a, c = 0.5 - a * log(4 * a)
+        func scene(_ v: Double) -> Double { v <= 0.5 ? v * v / 3 : (exp((v - c) / a) + b) / 12 }
+        return Float(scene(e) / scene(0.75))
+    }
+
+    /// Linear (1.0 = white, a little above after the knee) -> sRGB 8 bit.
+    private static let srgb: [UInt8] = (0...16383).map { i in
+        let l = Double(i) / 16383
+        let v = l <= 0.0031308 ? 12.92 * l : 1.055 * pow(l, 1 / 2.4) - 0.055
+        return UInt8(max(0, min(255, (v * 255).rounded())))
+    }
+
+    private func rgbHLG(_ buffer: CVPixelBuffer) -> RGBImage {
+        CVPixelBufferLockBaseAddress(buffer, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+        let bw = CVPixelBufferGetWidth(buffer), bh = CVPixelBufferGetHeight(buffer)
+        let yRow = CVPixelBufferGetBytesPerRowOfPlane(buffer, 0) / 2, cRow = CVPixelBufferGetBytesPerRowOfPlane(buffer, 1) / 2
+        let yp = CVPixelBufferGetBaseAddressOfPlane(buffer, 0)!.assumingMemoryBound(to: UInt16.self)
+        let cp = CVPixelBufferGetBaseAddressOfPlane(buffer, 1)!.assumingMemoryBound(to: UInt16.self)
+        let identity = inverse.isIdentity || bw != storedWidth || bh != storedHeight
+        let w = identity ? bw : width, h = identity ? bh : height
+        var out = [UInt8](repeating: 0, count: w * h * 3)
+        let toLinear = Self.hlgLinear, toSRGB = Self.srgb
+        @inline(__always) func lin(_ v: Float) -> Float { toLinear[Int(max(0, min(1, v)) * 4095 + 0.5)] }
+        // Highlights above white are compressed into the top 10 % instead of clipped.
+        @inline(__always) func knee(_ v: Float) -> Float { v <= 0.9 ? v : 0.9 + 0.1 * (1 - 1 / (1 + (v - 0.9) / 0.1)) }
+        @inline(__always) func enc(_ v: Float) -> UInt8 { toSRGB[Int(max(0, min(1, knee(v))) * 16383 + 0.5)] }
+        out.withUnsafeMutableBufferPointer { o in
+            for dy in 0..<h {
+                for dx in 0..<w {
+                    let (sx, sy) = source(dx, dy, identity: identity, bw: bw, bh: bh)
+                    // 10 bits in the high bits of 16; limited range.
+                    let y = (Float(yp[sy * yRow + sx] >> 6) - 64) / 876
+                    let c = (sy / 2) * cRow + (sx / 2) * 2
+                    let cb = (Float(cp[c] >> 6) - 512) / 896, cr = (Float(cp[c + 1] >> 6) - 512) / 896
+                    // BT.2020 non-constant luminance.
+                    let r = lin(y + 1.4746 * cr), g = lin(y - 0.16455 * cb - 0.57135 * cr), b = lin(y + 1.8814 * cb)
+                    // BT.2020 -> BT.709 primaries (BT.2087).
+                    let d = (dy * w + dx) * 3
+                    o[d] = enc(1.6605 * r - 0.5876 * g - 0.0728 * b)
+                    o[d + 1] = enc(-0.1246 * r + 1.1329 * g - 0.0083 * b)
+                    o[d + 2] = enc(-0.0182 * r - 0.1006 * g + 1.1187 * b)
                 }
             }
         }

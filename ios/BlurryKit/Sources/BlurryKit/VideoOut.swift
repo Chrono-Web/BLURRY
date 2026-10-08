@@ -30,7 +30,7 @@ public enum VideoOut {
         let audioTrack = keepAudio ? try await asset.loadTracks(withMediaType: .audio).first : nil
 
         let reader = try AVAssetReader(asset: asset)
-        let videoOut = AVAssetReaderTrackOutput(track: video, outputSettings: Orientation.readerSettings)
+        let videoOut = AVAssetReaderTrackOutput(track: video, outputSettings: orient.readerSettings)
         videoOut.alwaysCopiesSampleData = false
         reader.add(videoOut)
 

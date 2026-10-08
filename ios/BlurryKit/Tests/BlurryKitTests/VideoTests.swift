@@ -1,4 +1,5 @@
 import AVFoundation
+import VideoToolbox
 import XCTest
 @testable import BlurryKit
 
@@ -241,5 +242,87 @@ final class VideoTests: XCTestCase {
         p.waitUntilExit()
         let json = try JSONSerialization.jsonObject(with: data)
         return array ? (json as? [[String: Any]])?.first : json as? [String: Any]
+    }
+}
+
+/// HDR as the iPhone records it (HEVC 10 bit, HLG, BT.2020) comes out as the
+/// SDR picture it was made from, not washed out (5c, field test 2026-10-08).
+final class HDRVideoTests: XCTestCase {
+    func testHLGReadsAsSDR() async throws {
+        let source = try ImageIn.load(url: Reference.url("decoded/video-landscape.mp4-0.png")).rgb
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("blurrykit-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("hlg.mov")
+        try await Self.writeHLG(source, frames: 5, to: url)
+
+        let info = try await VideoIn.probe(url)
+        XCTAssertEqual([info.width, info.height], [source.width, source.height])
+        var read: RGBImage?
+        try await VideoIn.frames(url) { _, rgb, _ in read = rgb; return false }
+        let got = try XCTUnwrap(read)
+        let d = Pixels.diff(got.pixels, source.pixels)
+        let (sg, ss) = (Self.saturation(got), Self.saturation(source))
+        print(String(format: "  HLG: Δ mean %.2f, saturation %.1f (source %.1f)", d.mean, sg, ss))
+        // Read as 8-bit BT.601 it was Δ 19.8 and saturation 53; the rest is the
+        // encoder's own SDR -> HLG step and HEVC.
+        XCTAssertLessThan(d.mean, 8)
+        XCTAssertEqual(sg, ss, accuracy: ss * 0.15)
+    }
+
+    /// Mean of max(R,G,B) - min(R,G,B).
+    static func saturation(_ img: RGBImage) -> Double {
+        var total = 0
+        for i in stride(from: 0, to: img.pixels.count, by: 3) {
+            let p = img.pixels[i..<i + 3]
+            total += Int(p.max()!) - Int(p.min()!)
+        }
+        return Double(total) / Double(img.pixels.count / 3)
+    }
+
+    static func writeHLG(_ img: RGBImage, frames: Int, to url: URL) async throws {
+        let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
+        let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
+            AVVideoCodecKey: AVVideoCodecType.hevc,
+            AVVideoWidthKey: img.width, AVVideoHeightKey: img.height,
+            AVVideoColorPropertiesKey: [
+                AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_2020,
+                AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_2100_HLG,
+                AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_2020,
+            ],
+            AVVideoCompressionPropertiesKey: [
+                AVVideoProfileLevelKey: kVTProfileLevel_HEVC_Main10_AutoLevel as String,
+            ],
+        ])
+        let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+            kCVPixelBufferWidthKey as String: img.width, kCVPixelBufferHeightKey as String: img.height,
+        ])
+        writer.add(input)
+        guard writer.startWriting() else { throw XCTSkip("no HEVC 10-bit encoder here: \(String(describing: writer.error))") }
+        writer.startSession(atSourceTime: .zero)
+        for i in 0..<frames {
+            var pb: CVPixelBuffer?
+            CVPixelBufferPoolCreatePixelBuffer(nil, adaptor.pixelBufferPool!, &pb)
+            let buffer = pb!
+            CVBufferSetAttachment(buffer, kCVImageBufferColorPrimariesKey, kCVImageBufferColorPrimaries_ITU_R_709_2, .shouldPropagate)
+            CVBufferSetAttachment(buffer, kCVImageBufferTransferFunctionKey, kCVImageBufferTransferFunction_sRGB, .shouldPropagate)
+            CVPixelBufferLockBaseAddress(buffer, [])
+            let row = CVPixelBufferGetBytesPerRow(buffer)
+            let base = CVPixelBufferGetBaseAddress(buffer)!.assumingMemoryBound(to: UInt8.self)
+            for y in 0..<img.height {
+                for x in 0..<img.width {
+                    let s = (y * img.width + x) * 3, d = y * row + x * 4
+                    base[d] = img.pixels[s + 2]; base[d + 1] = img.pixels[s + 1]
+                    base[d + 2] = img.pixels[s]; base[d + 3] = 255
+                }
+            }
+            CVPixelBufferUnlockBaseAddress(buffer, [])
+            while !input.isReadyForMoreMediaData { try await Task.sleep(nanoseconds: 1_000_000) }
+            adaptor.append(buffer, withPresentationTime: CMTime(value: CMTimeValue(i), timescale: 15))
+        }
+        input.markAsFinished()
+        await writer.finishWriting()
+        if writer.status != .completed { throw XCTSkip("HEVC 10 bit not written here: \(String(describing: writer.error))") }
     }
 }

@@ -172,12 +172,19 @@ final class Store {
         defaults.removeObject(forKey: "onboarded")
     }
 
-    /// False while the app is in the background: no work runs then (iOS does
-    /// not let an app use the GPU from the background, and a long video would
-    /// be cut short anyway).
-    var active = true { didSet { if active && !oldValue { pump() } } }
+    /// False while the app is in the background. Work goes on there only if
+    /// iOS grants it (BackgroundWork, iOS 26), with detection on the CPU.
+    var active = true {
+        didSet {
+            guard active && !oldValue else { return }
+            engine.inBackground.set(false)
+            pump()
+        }
+    }
 
     @ObservationIgnored let engine = Engine()
+    @ObservationIgnored let background = BackgroundWork()
+    @ObservationIgnored private var batchDone = 0
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private var skipped: Set<UUID> = []
     @ObservationIgnored private var confirmedOnce = false
@@ -203,6 +210,10 @@ final class Store {
         guiding = !seen
         Task { [engine] in
             do { try await engine.prepare() } catch { await MainActor.run { self.fatal = "\(error)" } }
+        }
+        background.onExpire = { [weak self] in
+            guard let self, !self.active else { return }
+            self.stopWork()
         }
     }
 
@@ -320,7 +331,8 @@ final class Store {
     // MARK: analysis, one file at a time
 
     private func pump() {
-        guard active, analysis == nil, fatal == nil else { return }
+        defer { reportWork() }
+        guard active || background.granted, analysis == nil, fatal == nil else { return }
         let waiting = items.filter { $0.status == .waiting }
         guard let next = waiting.first(where: { $0.id == currentID }) ?? waiting.first,
               let i = index(of: next.id) else { return }
@@ -354,7 +366,10 @@ final class Store {
         do {
             result = .success(try await engine.analyzeVideo(url) { pct in
                 Task { @MainActor in
-                    if let i = self.index(of: id), self.items[i].status == .analyzing { self.items[i].progress = pct }
+                    if let i = self.index(of: id), self.items[i].status == .analyzing, self.items[i].progress != pct {
+                        self.items[i].progress = pct
+                        self.reportWork()
+                    }
                 }
             })
         } catch {
@@ -378,6 +393,7 @@ final class Store {
         guard let i = index(of: id) else { return }
         do {
             try store(i)
+            batchDone += 1
             rebuild(i)
             if id == currentID {
                 preview = items[i].thumb
@@ -386,7 +402,12 @@ final class Store {
         } catch is CancellationError {
             items[i].status = .waiting
         } catch {
-            if active { fail(i, error) } else { items[i].status = .waiting }
+            if active || background.granted {
+                fail(i, error)
+                batchDone += 1
+            } else {
+                items[i].status = .waiting
+            }
         }
     }
 
@@ -548,7 +569,10 @@ final class Store {
                 if let url = item.videoURL, let plan = item.videoPlan {
                     try await engine.renderVideo(url, to: file, plan: plan, settings: settings, progress: { pct in
                         Task { @MainActor in
-                            if let i = self.index(of: id), self.items[i].status == .exporting { self.items[i].progress = pct }
+                            if let i = self.index(of: id), self.items[i].status == .exporting, self.items[i].progress != pct {
+                                self.items[i].progress = pct
+                                self.reportWork()
+                            }
                         }
                     }, cancelled: { flag.isSet })
                 } else if let source = item.source, let plan = item.plan {
@@ -556,10 +580,12 @@ final class Store {
                     try data.write(to: file, options: .completeFileProtection)
                 }
                 exporting = nil
+                reportWork()
                 guard index(of: id) != nil else { return Videos.discard(file) }
                 pendingExport = PendingExport(item: id, destination: destination, name: name, file: file)
             } catch {
                 exporting = nil
+                reportWork()
                 guard let i = index(of: id) else { return }
                 if error is CancellationError || flag.isSet {
                     settle(i)
@@ -570,6 +596,7 @@ final class Store {
             }
         }
         exporting = (id, task, flag)
+        reportWork()
     }
 
     /// The sheet closed: saved or shared, or cancelled (back to ready).
@@ -733,11 +760,9 @@ final class Store {
 
     // MARK: life cycle
 
-    /// The app left the screen: stop the work (a long video would be cut short
-    /// anyway), drop decoded pictures, and remove the copies nothing needs.
-    func didEnterBackground() {
-        active = false
-        stopPlaying()
+    /// Stop the analysis and the export: the analysis goes back to waiting,
+    /// the export to ready, with a notice.
+    private func stopWork() {
         if let a = analysis {
             a.task.cancel()
             notice = L.interrupted
@@ -746,6 +771,43 @@ final class Store {
             e.cancel.set()
             e.task.cancel()
         }
+    }
+
+    /// How the work is going, for the system's view of it while in the
+    /// background (BackgroundWork); when there is none left, the end of it.
+    private func reportWork() {
+        let remaining = items.filter { $0.status == .waiting || $0.status == .analyzing }.count
+        if let e = exporting, let i = index(of: e.id) {
+            // A photo is written in a moment: no need to ask iOS for time.
+            guard items[i].videoURL != nil else { return }
+            work(Double(items[i].progress) / 100, L.bgExporting)
+        } else if let a = analysis, let i = index(of: a.id) {
+            guard items[i].videoURL != nil || batchDone + remaining > 1 else { return }
+            let n = batchDone + remaining
+            work((Double(batchDone) + Double(items[i].progress) / 100) / Double(max(1, n)),
+                 L.bgAnalyzing(batchDone + 1, n))
+        } else {
+            batchDone = 0
+            background.end()
+        }
+    }
+
+    private func work(_ fraction: Double, _ subtitle: String) {
+        if active {
+            background.begin(fraction: fraction, subtitle: subtitle)
+        } else {
+            background.update(fraction: fraction, subtitle: subtitle)
+        }
+    }
+
+    /// The app left the screen: the work goes on if iOS granted the time
+    /// (detection then on the CPU), otherwise it stops and starts again on
+    /// return. Decoded pictures are dropped, and the copies nothing needs removed.
+    func didEnterBackground() {
+        active = false
+        stopPlaying()
+        engine.inBackground.set(true)
+        if !background.granted { stopWork() }
         Task { await engine.forget() }
         Privacy.clearCopies(keeping: Set(items.compactMap(\.videoURL)).union(pendingExport.map { [$0.file] } ?? []))
         Privacy.scrub(defaults)
@@ -753,9 +815,4 @@ final class Store {
 }
 
 /// A flag the export checks between frames.
-final class CancelFlag: @unchecked Sendable {
-    private let lock = NSLock()
-    private var value = false
-    var isSet: Bool { lock.withLock { value } }
-    func set() { lock.withLock { value = true } }
-}
+typealias CancelFlag = SharedFlag

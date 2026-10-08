@@ -1,3 +1,4 @@
+import CoreML
 import XCTest
 @testable import BlurryKit
 
@@ -11,7 +12,15 @@ final class ParityTests: XCTestCase {
     /// flags at every level. Scores agree within 1e-5: Core ML and OpenCV DNN sum
     /// the convolutions in a different order, a few float32 ulps apart.
     func testDetectionIdenticalOnEnginePixels() throws {
-        let det = try detector()
+        try identicalOnEnginePixels(try detector())
+    }
+
+    /// The same on the CPU alone, as the app detects in the background.
+    func testDetectionIdenticalOnEnginePixelsCPUOnly() throws {
+        try identicalOnEnginePixels(FaceDetector(level: Levels.shared.mostSensitive, computeUnits: .cpuOnly))
+    }
+
+    private func identicalOnEnginePixels(_ det: FaceDetector) throws {
         let fixtures = Reference.fixtures()
         XCTAssertFalse(fixtures.isEmpty)
         for (name, ref) in fixtures {

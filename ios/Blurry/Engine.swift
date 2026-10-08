@@ -36,7 +36,13 @@ actor Engine {
     static let previewMaxSide = 1600   // as the Mac app asks the worker
 
     private var detector: FaceDetector?
+    private var cpuDetector: FaceDetector?
     private var current: (id: UUID, image: LoadedImage, small: RGBImage, scale: Double)?
+
+    /// Set while the app works in the background. iOS does not give the GPU to
+    /// an app there, so Core ML runs on the CPU only: the same boxes
+    /// (ParityTests), more memory, which is why it is not the default.
+    nonisolated let inBackground = SharedFlag()
 
     private func faceDetector() throws -> FaceDetector {
         if let detector { return detector }
@@ -45,13 +51,19 @@ actor Engine {
         return d
     }
 
+    private func detectors() throws -> Detectors {
+        if cpuDetector == nil {
+            cpuDetector = try FaceDetector(level: Levels.shared.mostSensitive, computeUnits: .cpuOnly)
+        }
+        return Detectors(any: try faceDetector(), cpu: cpuDetector!, inBackground: inBackground)
+    }
+
     /// The model check (R5) at launch: a broken install is told at once.
     func prepare() throws { _ = try faceDetector() }
 
     func analyze(_ source: Source) throws -> Analysis {
         let entry = try load(source)
-        let detector = try faceDetector()
-        let boxes = try detector.detect(entry.image.rgb)
+        let boxes = try detectors().detect(entry.image.rgb)
         let base = ImagePlan(width: entry.image.rgb.width, height: entry.image.rgb.height, boxes: boxes)
         var plans: [String: ImagePlan] = [:]
         for level in Levels.shared.levels {
@@ -95,7 +107,7 @@ actor Engine {
     /// Every frame through the detector, in order. Cancelling the task stops it.
     func analyzeVideo(_ url: URL, progress: @escaping @Sendable (Int) -> Void) async throws -> VideoAnalysis {
         let info = try await VideoIn.probe(url)
-        let detector = try faceDetector()
+        let detector = try detectors()
         var detections: [[Box]] = [], pts: [CMTime] = []
         var best = (index: 0, faces: -1, small: nil as RGBImage?)
         let total = max(1, info.estimatedFrames)
@@ -207,6 +219,27 @@ actor Engine {
         current = (source.id, image, small, scale)
         return (image, small, scale)
     }
+}
+
+/// The detector for the moment: Core ML's choice on screen, the CPU in the
+/// background. A frame caught by the switch is detected again on the CPU.
+struct Detectors {
+    let any: FaceDetector
+    let cpu: FaceDetector
+    let inBackground: SharedFlag
+
+    func detect(_ rgb: RGBImage) throws -> [Box] {
+        if inBackground.isSet { return try cpu.detect(rgb) }
+        do { return try any.detect(rgb) } catch where inBackground.isSet { return try cpu.detect(rgb) }
+    }
+}
+
+/// A flag shared with the work running off the main thread.
+final class SharedFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+    var isSet: Bool { lock.withLock { value } }
+    func set(_ on: Bool = true) { lock.withLock { value = on } }
 }
 
 /// A file as it arrived: its bytes, never a path.

@@ -44,6 +44,12 @@
 	<false/>
 	<key>UIFileSharingEnabled</key>
 	<false/>
+	<!-- Work started on screen may go on in the background (iOS 26,
+	     BackgroundWork.swift): one identifier per job under this prefix. -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER).work.*</string>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>
