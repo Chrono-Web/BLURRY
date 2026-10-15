@@ -128,6 +128,19 @@ jobs:
       - run: uv sync --frozen
       - run: scripts/coreml/test-kit.sh
 
+  android-engine:
+    # Builds the engine and its parity tests. The tests themselves run on an
+    # arm64 emulator or phone (scripts/android/test-engine.sh), and the
+    # arm64 emulator does not run on GitHub's runners (PIANO_BLURRY 6a).
+    name: Android engine (build)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: ./gradlew --no-daemon :engine:assembleDebug :engine:assembleDebugAndroidTest
+        working-directory: android
+
   ios-app:
     name: app iOS (unsigned IPA)
     runs-on: macos-15
