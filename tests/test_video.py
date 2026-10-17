@@ -125,10 +125,12 @@ def test_hlg_video_as_apple_shows_it(tmp_path):
     # A grey ramp of HLG values, and what AVFoundation makes of it in BT.709
     # (measured on macOS 26 with AVAssetReader, 2026-10-08).
     apple = {0.25: 55, 0.5: 98, 0.75: 155, 0.94: 226}
-    ramp = np.tile(np.linspace(0, 1, 1024)[None, :, None], (64, 1, 3))
+    # Three frames of 128 rows, as the patches below: a single 64-row frame
+    # sometimes fails to mux with FFmpeg on Linux.
+    ramp = np.tile(np.linspace(0, 1, 1024)[None, :, None], (128, 1, 3))
     path = tmp_path / "ramp.mp4"
-    write_hlg_video(path, [ramp], signal=True)
-    grey = next(video_io.iter_frames(path))[32]
+    write_hlg_video(path, [ramp] * 3, signal=True)
+    grey = next(video_io.iter_frames(path))[64]
     for v, expected in apple.items():
         assert abs(int(grey[round(v * 1023)].mean()) - expected) <= 5, v
 
